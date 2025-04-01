@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Cypherium</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: #0A2463;
+            color: white;
+        }
+        .main-content {
+            padding: 20px;
+        }
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .table-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .balance-input {
+            width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-3">
+                <h4 class="mb-4">Admin Panel</h4>
+                <div class="list-group">
+                    <a href="#" class="list-group-item list-group-item-action active bg-transparent text-white border-0">
+                        <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action bg-transparent text-white border-0">
+                        <i class="bi bi-people me-2"></i> Users
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action bg-transparent text-white border-0">
+                        <i class="bi bi-currency-dollar me-2"></i> Investments
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action bg-transparent text-white border-0">
+                        <i class="bi bi-gear me-2"></i> Settings
+                    </a>
+                    <a href="#" id="logoutBtn" class="list-group-item list-group-item-action bg-transparent text-white border-0">
+                        <i class="bi bi-box-arrow-right me-2"></i> Logout
+                    </a>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <h2 class="mb-4">Dashboard Overview</h2>
+                
+                <!-- Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="stat-card">
+                            <h5>Total Users</h5>
+                            <h3 id="totalUsers">0</h3>
+                            <p class="text-success"><i class="bi bi-arrow-up"></i> <span id="userIncrease">0%</span> increase</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card">
+                            <h5>Total Investments</h5>
+                            <h3 id="totalInvestments">$0</h3>
+                            <p class="text-success"><i class="bi bi-arrow-up"></i> <span id="investmentIncrease">0%</span> increase</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card">
+                            <h5>Active Plans</h5>
+                            <h3 id="activePlans">0</h3>
+                            <p class="text-success"><i class="bi bi-arrow-up"></i> <span id="planIncrease">0%</span> increase</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Users Table -->
+                <div class="table-container">
+                    <h4 class="mb-4">Users</h4>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Full Name</th>
+                                <th>Balance</th>
+                                <th>Total Invested</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- Users will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Balance Update Modal -->
+    <div class="modal fade" id="balanceModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Balance</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="balanceForm">
+                        <input type="hidden" id="userId">
+                        <div class="mb-3">
+                            <label class="form-label">Amount</label>
+                            <input type="number" class="form-control" id="amount" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Type</label>
+                            <select class="form-select" id="type" required>
+                                <option value="add">Add</option>
+                                <option value="subtract">Subtract</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Reason</label>
+                            <input type="text" class="form-control" id="reason" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="updateBalanceBtn">Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Check if admin is logged in
+        const adminToken = localStorage.getItem('adminToken');
+        if (!adminToken) {
+            window.location.href = '/admin-login.html';
+        }
+
+        // Fetch and display users
+        async function fetchUsers() {
+            try {
+                const response = await fetch('/api/admin/users', {
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                    }
+                });
+                const users = await response.json();
+                
+                // Update stats
+                document.getElementById('totalUsers').textContent = users.length;
+                
+                // Calculate total investments
+                const totalInvested = users.reduce((sum, user) => sum + (user.totalInvested || 0), 0);
+                document.getElementById('totalInvestments').textContent = `$${totalInvested.toLocaleString()}`;
+                
+                // Update users table
+                const tbody = document.getElementById('usersTableBody');
+                tbody.innerHTML = users.map(user => `
+                    <tr>
+                        <td>${user.username}</td>
+                        <td>${user.email}</td>
+                        <td>${user.fullName}</td>
+                        <td>$${user.balance.toLocaleString()}</td>
+                        <td>$${user.totalInvested.toLocaleString()}</td>
+                        <td><span class="badge bg-${user.isVerified ? 'success' : 'warning'}">${user.isVerified ? 'Verified' : 'Pending'}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="openBalanceModal('${user._id}', ${user.balance})">
+                                Update Balance
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error fetching users:', error);
+                alert('Error fetching users. Please try again.');
+            }
+        }
+
+        // Balance update modal
+        let balanceModal;
+        function openBalanceModal(userId, currentBalance) {
+            document.getElementById('userId').value = userId;
+            document.getElementById('amount').value = '';
+            document.getElementById('type').value = 'add';
+            document.getElementById('reason').value = '';
+            balanceModal = new bootstrap.Modal(document.getElementById('balanceModal'));
+            balanceModal.show();
+        }
+
+        // Update balance
+        document.getElementById('updateBalanceBtn').addEventListener('click', async () => {
+            const userId = document.getElementById('userId').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const type = document.getElementById('type').value;
+            const reason = document.getElementById('reason').value;
+
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/balance`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify({ amount, type, reason })
+                });
+
+                if (response.ok) {
+                    balanceModal.hide();
+                    fetchUsers(); // Refresh the users list
+                } else {
+                    const error = await response.json();
+                    alert(error.message || 'Error updating balance');
+                }
+            } catch (error) {
+                console.error('Error updating balance:', error);
+                alert('Error updating balance. Please try again.');
+            }
+        });
+
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.clear();
+            window.location.href = '/admin-login.html';
+        });
+
+        // Initial load
+        fetchUsers();
+    </script>
+</body>
+</html> 

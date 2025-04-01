@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cypherium | Sign Up</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/auth.css">
+    <style>
+        .auth-card {
+            max-width: 500px;
+            width: 95%;
+        }
+        
+        /* Improved Google button */
+        .oauth-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            color: #757575;
+            padding: 10px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        .oauth-btn:hover {
+            background-color: #f8f9fa;
+        }
+        
+        /* Better password input group */
+        .password-toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg">
+            <div class="container">
+                <a class="navbar-brand site-logo" href="index.html">Cypherium.</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="mainNavbar">
+                    <ul class="navbar-nav me-auto"></ul>
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-main" href="login.html">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-btn-primary active-on" href="#">Get Started <i class="bi bi-arrow-right"></i></a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container d-flex justify-content-center align-items-center min-vh-100 py-4">
+        <div class="auth-card card shadow-lg p-4">
+            <h1 class="text-center mb-3">Create Account</h1>
+            <p class="text-center text-muted mb-4">Please fill in your details to sign up.</p>
+            
+            <div id="g_id_onload"
+                data-client_id=""
+                data-callback="handleGoogleSignIn">
+            </div>
+            <div class="g_id_signin" data-type="standard"></div>
+            
+            <div class="divider text-muted my-3">or</div>
+            
+            <form id="registerForm">
+                <!-- Add Error Alert -->
+                <div class="alert alert-danger" id="errorAlert" style="display: none;"></div>
+                
+                <div class="mb-3">
+                    <label for="username" class="form-label fw-bold">Username:*</label>
+                    <input type="text" class="form-control" id="username" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="email" class="form-label fw-bold">Email:*</label>
+                    <input type="email" class="form-control" id="email" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="password" class="form-label fw-bold">Password:*</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="password" required>
+                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                            <i class="bi bi-eye-slash"></i>
+                        </button>
+                    </div>
+                    <div class="form-text">Password must be at least 8 characters long</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="confirmPassword" class="form-label fw-bold">Confirm Password:*</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="confirmPassword" required>
+                        <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
+                            <i class="bi bi-eye-slash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="secretQuestion" class="form-label fw-bold">Secret Question:*</label>
+                    <select class="form-select" id="secretQuestion" required>
+                        <option value="">Select a secret question</option>
+                        <option value="mother_maiden">What is your mother's maiden name?</option>
+                        <option value="first_pet">What was your first pet's name?</option>
+                        <option value="birth_city">In which city were you born?</option>
+                        <option value="school_name">What was your first school's name?</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="secretAnswer" class="form-label fw-bold">Secret Answer:*</label>
+                    <input type="text" class="form-control" id="secretAnswer" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">CREATE ACCOUNT</button>
+            </form>
+            
+            <p class="text-center mt-3">
+                <small class="text-muted">Already have an account? <a href="login.html" class="text-primary text-decoration-none">LOGIN</a></small>
+            </p>
+        </div>
+    </div>
+
+    <!-- Google OAuth Client Library -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Bootstrap JS + Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Config -->
+    <script src="js/config.js"></script>
+    <!-- API Service -->
+    <script src="js/api.js"></script>
+    <script>
+        // Set Google client ID
+        window.googleClientId = config.googleClientId;
+        
+        // Handle Google Sign In
+        async function handleGoogleSignIn(response) {
+            try {
+                console.log('Google sign-in response received');
+                const data = await api.auth.googleSignIn(response.credential);
+                
+                // Redirect to dashboard
+                window.location.href = 'dashboard.html';
+            } catch (error) {
+                console.error('Google sign in error:', error);
+                const errorAlert = document.getElementById('errorAlert');
+                errorAlert.textContent = `An error occurred during Google sign in: ${error.message}`;
+                errorAlert.style.display = 'block';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set Google client ID
+            const gIdOnload = document.getElementById('g_id_onload');
+            gIdOnload.setAttribute('data-client_id', config.googleClientId);
+            
+            const registerForm = document.getElementById('registerForm');
+            const errorAlert = document.getElementById('errorAlert');
+            const togglePassword = document.getElementById('togglePassword');
+            const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+            const passwordInput = document.getElementById('password');
+            const confirmPasswordInput = document.getElementById('confirmPassword');
+            
+            // Password toggle functionality
+            function setupPasswordToggle(toggleBtn, input) {
+                toggleBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+                    input.setAttribute('type', type);
+                    const icon = this.querySelector('i');
+                    icon.classList.remove('bi-eye', 'bi-eye-slash');
+                    icon.classList.add(type === 'password' ? 'bi-eye-slash' : 'bi-eye');
+                });
+            }
+            
+            setupPasswordToggle(togglePassword, passwordInput);
+            setupPasswordToggle(toggleConfirmPassword, confirmPasswordInput);
+            
+            // Form submission
+            registerForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                errorAlert.style.display = 'none';
+                
+                const username = document.getElementById('username').value;
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                const secretQuestion = document.getElementById('secretQuestion').value;
+                const secretAnswer = document.getElementById('secretAnswer').value;
+
+                // Basic validation
+                if (password !== confirmPassword) {
+                    errorAlert.textContent = 'Passwords do not match';
+                    errorAlert.style.display = 'block';
+                    return;
+                }
+
+                if (password.length < 8) {
+                    errorAlert.textContent = 'Password must be at least 8 characters long';
+                    errorAlert.style.display = 'block';
+                    return;
+                }
+                
+                try {
+                    const data = await api.auth.register({
+                        username,
+                        email,
+                        password,
+                        secretQuestion,
+                        secretAnswer
+                    });
+
+                    // Show success message
+                    errorAlert.className = 'alert alert-success';
+                    errorAlert.textContent = 'Registration successful! Redirecting to login...';
+                    errorAlert.style.display = 'block';
+                    
+                    // Redirect to login page after a short delay
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 1500);
+                } catch (error) {
+                    console.error('Error:', error);
+                    errorAlert.textContent = error.message || 'An error occurred. Please try again.';
+                    errorAlert.style.display = 'block';
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
