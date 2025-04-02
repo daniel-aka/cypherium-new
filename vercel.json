@@ -4,6 +4,10 @@
         {
             "src": "backend/server.js",
             "use": "@vercel/node"
+        },
+        {
+            "src": "frontend/**",
+            "use": "@vercel/static"
         }
     ],
     "routes": [
@@ -12,8 +16,64 @@
             "dest": "backend/server.js"
         },
         {
-            "src": "/(.*)",
-            "dest": "frontend/$1"
+            "src": "/css/(.*)",
+            "dest": "frontend/css/$1"
+        },
+        {
+            "src": "/js/(.*)",
+            "dest": "frontend/js/$1"
+        },
+        {
+            "src": "/assets/(.*)",
+            "dest": "frontend/assets/$1"
+        },
+        {
+            "src": "/login",
+            "dest": "frontend/login.html"
+        },
+        {
+            "src": "/signup",
+            "dest": "frontend/signup.html"
+        },
+        {
+            "src": "/dashboard",
+            "dest": "frontend/dashboard.html"
+        },
+        {
+            "src": "/about",
+            "dest": "frontend/about.html"
+        },
+        {
+            "src": "/contact",
+            "dest": "frontend/contact.html"
+        },
+        {
+            "src": "/faqs",
+            "dest": "frontend/faqs.html"
+        },
+        {
+            "src": "/terms",
+            "dest": "frontend/terms.html"
+        },
+        {
+            "src": "/referral",
+            "dest": "frontend/referral.html"
+        },
+        {
+            "src": "/investment",
+            "dest": "frontend/investment.html"
+        },
+        {
+            "src": "/features",
+            "dest": "frontend/features.html"
+        },
+        {
+            "src": "/admin",
+            "dest": "frontend/admin.html"
+        },
+        {
+            "src": "/admin-login",
+            "dest": "frontend/admin-login.html"
         },
         {
             "src": "/(.*)",
