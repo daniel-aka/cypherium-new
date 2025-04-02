@@ -28,51 +28,51 @@
             "dest": "frontend/assets/$1"
         },
         {
-            "src": "/login",
-            "dest": "frontend/login.html"
-        },
-        {
-            "src": "/signup",
-            "dest": "frontend/signup.html"
-        },
-        {
-            "src": "/dashboard",
-            "dest": "frontend/dashboard.html"
-        },
-        {
-            "src": "/about",
+            "src": "/about.html",
             "dest": "frontend/about.html"
         },
         {
-            "src": "/contact",
+            "src": "/login.html",
+            "dest": "frontend/login.html"
+        },
+        {
+            "src": "/signup.html",
+            "dest": "frontend/signup.html"
+        },
+        {
+            "src": "/dashboard.html",
+            "dest": "frontend/dashboard.html"
+        },
+        {
+            "src": "/contact.html",
             "dest": "frontend/contact.html"
         },
         {
-            "src": "/faqs",
+            "src": "/faqs.html",
             "dest": "frontend/faqs.html"
         },
         {
-            "src": "/terms",
+            "src": "/terms.html",
             "dest": "frontend/terms.html"
         },
         {
-            "src": "/referral",
+            "src": "/referral.html",
             "dest": "frontend/referral.html"
         },
         {
-            "src": "/investment",
+            "src": "/investment.html",
             "dest": "frontend/investment.html"
         },
         {
-            "src": "/features",
+            "src": "/features.html",
             "dest": "frontend/features.html"
         },
         {
-            "src": "/admin",
+            "src": "/admin.html",
             "dest": "frontend/admin.html"
         },
         {
-            "src": "/admin-login",
+            "src": "/admin-login.html",
             "dest": "frontend/admin-login.html"
         },
         {
