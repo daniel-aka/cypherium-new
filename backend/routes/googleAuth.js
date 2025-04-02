@@ -22,42 +22,30 @@ async function handleUserAuth(payload) {
     try {
         console.log('Starting user authentication for:', payload.email);
         
-        // Find or create user with timeout
-        const userPromise = User.findOne({ email: payload.email });
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('User lookup timeout')), 3000)
-        );
-        
-        let user = await Promise.race([userPromise, timeoutPromise]);
-        
-        if (!user) {
-            console.log('Creating new user for:', payload.email);
-            // Create new user with timeout
-            const createPromise = User.create({
-                email: payload.email,
-                fullName: payload.name,
-                googleId: payload.sub,
-                username: payload.email.split('@')[0] + Math.random().toString(36).substring(2, 8)
-            });
-            user = await Promise.race([createPromise, timeoutPromise]);
+        // Lookup user with timeout
+        const user = await Promise.race([
+            User.findOne({ email: payload.email }),
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('User lookup timeout')), 5000)
+            )
+        ]);
+
+        if (user) {
+            console.log('Existing user found:', user.email);
+            return user;
         }
-        
-        // Generate JWT token
-        const token = jwt.sign(
-            { userId: user._id, email: user.email },
-            process.env.JWT_SECRET,
-            { expiresIn: '24h' }
-        );
-        
-        return {
-            token,
-            user: {
-                id: user._id,
-                email: user.email,
-                fullName: user.fullName,
-                username: user.username
-            }
-        };
+
+        console.log('Creating new user for:', payload.email);
+        const newUser = new User({
+            email: payload.email,
+            name: payload.name,
+            googleId: payload.sub,
+            profilePicture: payload.picture
+        });
+
+        await newUser.save();
+        console.log('New user created successfully');
+        return newUser;
     } catch (error) {
         console.error('User authentication error:', error);
         throw error;
@@ -65,71 +53,50 @@ async function handleUserAuth(payload) {
 }
 
 // Google Sign-In endpoint
-router.post('/', async (req, res) => {
+router.post('/google', async (req, res) => {
     try {
-        console.log('Received Google sign-in request');
         const { credential } = req.body;
         
         if (!credential) {
-            console.error('No credential provided');
             return res.status(400).json({ error: 'No credential provided' });
         }
-        
-        // Check cache first
+
+        // Check token cache
         if (tokenCache.has(credential)) {
             console.log('Using cached token');
             return res.json(tokenCache.get(credential));
         }
-        
-        // Verify Google token with timeout
-        console.log('Verifying Google token...');
-        const verifyPromise = oauth2Client.verifyIdToken({
+
+        console.log('Verifying Google token');
+        const ticket = await oauth2Client.verifyIdToken({
             idToken: credential,
             audience: process.env.GOOGLE_CLIENT_ID
         });
-        
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Google token verification timeout')), 3000)
-        );
-        
-        const ticket = await Promise.race([verifyPromise, timeoutPromise]);
+
         const payload = ticket.getPayload();
-        
         console.log('Token verified for:', payload.email);
+
+        const user = await handleUserAuth(payload);
         
-        // Validate token audience
-        if (payload.aud !== process.env.GOOGLE_CLIENT_ID) {
-            console.error('Invalid token audience:', payload.aud);
-            return res.status(401).json({ error: 'Invalid token audience' });
-        }
+        // Cache the token result
+        tokenCache.set(credential, { user });
         
-        // Handle user authentication
-        const authResult = await handleUserAuth(payload);
-        
-        // Cache the result
-        tokenCache.set(credential, authResult);
-        setTimeout(() => tokenCache.delete(credential), 5 * 60 * 1000); // Clear after 5 minutes
-        
-        console.log('Authentication successful for:', payload.email);
-        res.json(authResult);
-        
+        res.json({ user });
     } catch (error) {
-        console.error('Google authentication error:', {
-            message: error.message,
-            stack: error.stack,
-            name: error.name
-        });
+        console.error('Google authentication error:', error);
         
-        if (error.message.includes('timeout')) {
-            res.status(504).json({ error: 'Authentication timeout' });
-        } else if (error.message.includes('Invalid token')) {
-            res.status(401).json({ error: 'Invalid Google token' });
-        } else {
-            res.status(500).json({ 
-                error: 'Authentication failed',
-                details: process.env.NODE_ENV === 'development' ? error.message : undefined
-            });
+        // Handle specific error types
+        if (error.message.includes('Token used too late')) {
+            return res.status(401).json({ error: 'Token expired' });
         }
+        if (error.message.includes('Invalid token signature')) {
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+        if (error.message.includes('User lookup timeout')) {
+            return res.status(504).json({ error: 'Database timeout' });
+        }
+        
+        res.status(500).json({ error: 'Authentication failed' });
     }
 });
 
