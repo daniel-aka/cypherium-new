@@ -1,8 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const { OAuth2Client } = require('google-auth-library');
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const User = require('../models/User');
+
+// Initialize Google OAuth client with error handling
+let client;
+try {
+    client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    console.log('Google OAuth client initialized successfully');
+} catch (error) {
+    console.error('Failed to initialize Google OAuth client:', error);
+    throw error;
+}
 
 // Token cache to prevent repeated processing
 const tokenCache = new Map();
@@ -12,6 +21,11 @@ async function handleUserAuth(payload) {
     try {
         console.log('Starting user authentication for:', payload.email);
         
+        // Validate payload
+        if (!payload.email || !payload.sub) {
+            throw new Error('Invalid payload: missing required fields');
+        }
+
         // Lookup user with timeout
         const user = await Promise.race([
             User.findOne({ email: payload.email }),
@@ -37,7 +51,11 @@ async function handleUserAuth(payload) {
         console.log('New user created successfully');
         return newUser;
     } catch (error) {
-        console.error('User authentication error:', error);
+        console.error('User authentication error:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
         throw error;
     }
 }
@@ -68,6 +86,12 @@ router.post('/', async (req, res) => {
         const payload = ticket.getPayload();
         console.log('Token verified for:', payload.email);
 
+        // Validate token audience
+        if (payload.aud !== process.env.GOOGLE_CLIENT_ID) {
+            console.error('Invalid token audience:', payload.aud);
+            return res.status(401).json({ error: 'Invalid token audience' });
+        }
+
         const user = await handleUserAuth(payload);
         
         // Cache the token result
@@ -75,7 +99,11 @@ router.post('/', async (req, res) => {
         
         res.json({ user });
     } catch (error) {
-        console.error('Google authentication error:', error);
+        console.error('Google authentication error:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
         
         // Handle specific error types
         if (error.message.includes('Token used too late')) {
@@ -87,19 +115,51 @@ router.post('/', async (req, res) => {
         if (error.message.includes('User lookup timeout')) {
             return res.status(504).json({ error: 'Database timeout' });
         }
+        if (error.message.includes('Invalid payload')) {
+            return res.status(400).json({ error: error.message });
+        }
         
-        res.status(500).json({ error: 'Authentication failed' });
+        res.status(500).json({ 
+            error: 'Authentication failed',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
 
-// Test endpoint for token verification
+// Test endpoint for debugging
 router.post('/test', async (req, res) => {
     try {
-        const { credential } = req.body;
-        if (!credential) {
-            return res.status(400).json({ message: 'No credential provided' });
+        console.log('Test endpoint called with body:', req.body);
+        
+        // Check if Google Client ID is set
+        if (!process.env.GOOGLE_CLIENT_ID) {
+            console.error('GOOGLE_CLIENT_ID is not set');
+            return res.status(500).json({ 
+                error: 'Configuration error',
+                details: 'GOOGLE_CLIENT_ID is not set'
+            });
         }
 
+        const { credential } = req.body;
+        if (!credential) {
+            console.error('No credential provided in test request');
+            return res.status(400).json({ 
+                error: 'No credential provided',
+                details: 'Please provide a valid Google credential'
+            });
+        }
+
+        // Check if the credential looks like a Client ID instead of a token
+        if (credential.includes('apps.googleusercontent.com')) {
+            return res.status(400).json({
+                error: 'Invalid credential format',
+                details: 'You provided a Client ID instead of a Google token. Please sign in through the website to get a valid token.'
+            });
+        }
+
+        console.log('Initializing Google OAuth client...');
+        const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+        
         console.log('Testing token verification...');
         const ticket = await client.verifyIdToken({
             idToken: credential,
@@ -107,8 +167,11 @@ router.post('/test', async (req, res) => {
         });
 
         const payload = ticket.getPayload();
+        console.log('Token verification successful');
+        
         return res.json({
             success: true,
+            clientId: process.env.GOOGLE_CLIENT_ID,
             payload: {
                 email: payload.email,
                 name: payload.name,
@@ -120,15 +183,21 @@ router.post('/test', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Token verification test error:', error);
+        console.error('Token verification test error:', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack,
+            code: error.code
+        });
+        
         return res.status(400).json({
             success: false,
             error: error.message,
-            details: process.env.NODE_ENV === 'development' ? {
+            details: {
                 name: error.name,
                 code: error.code,
-                stack: error.stack
-            } : undefined
+                clientId: process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Not set'
+            }
         });
     }
 });

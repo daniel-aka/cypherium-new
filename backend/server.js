@@ -159,7 +159,9 @@ app.use((err, req, res, next) => {
         name: err.name,
         stack: err.stack,
         path: req.path,
-        method: req.method
+        method: req.method,
+        body: req.body,
+        headers: req.headers
     });
 
     if (err.name === 'TimeoutError' || err.message.includes('timeout')) {
@@ -172,6 +174,13 @@ app.use((err, req, res, next) => {
     if (err.name === 'MongoError' || err.name === 'MongoServerError') {
         return res.status(500).json({ 
             message: 'Database error',
+            error: process.env.NODE_ENV === 'development' ? err.message : undefined
+        });
+    }
+
+    if (err.name === 'TypeError' && err.message.includes('Cannot read property')) {
+        return res.status(500).json({ 
+            message: 'Internal server error',
             error: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }

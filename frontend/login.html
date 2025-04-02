@@ -182,28 +182,18 @@
         }
 
         // Handle Google Sign In
-        window.handleGoogleSignIn = async function(response) {
+        window.handleGoogleSignIn = async (response) => {
             try {
                 console.log('Google sign-in response received');
-                if (typeof api === 'undefined') {
-                    throw new Error('API not initialized. Please refresh the page.');
-                }
-                
-                const data = await api.auth.googleSignIn(response.credential);
-                
-                if (data.token) {
-                    // Redirect to dashboard
-                    window.location.href = 'dashboard.html';
-                } else {
-                    throw new Error('No token received from server');
-                }
+                console.log('Credential:', response.credential);
+                const result = await googleSignIn(response.credential);
+                console.log('Sign-in successful:', result);
+                window.location.href = 'dashboard.html';
             } catch (error) {
                 console.error('Google sign in error:', error);
-                const errorAlert = document.getElementById('errorAlert');
-                errorAlert.textContent = `An error occurred during Google sign in: ${error.message}`;
-                errorAlert.style.display = 'block';
+                showError(error.message || 'Failed to sign in with Google');
             }
-        }
+        };
 
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing...');
