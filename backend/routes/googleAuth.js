@@ -11,7 +11,7 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const tokenCache = new Map();
 
 // Set timeout for Google API calls
-const GOOGLE_TIMEOUT = 5000; // 5 seconds
+const GOOGLE_TIMEOUT = 3000; // 3 seconds
 
 // Handle Google OAuth callback
 router.get('/callback', (req, res) => {
@@ -57,7 +57,7 @@ router.post('/', async (req, res) => {
         const payload = ticket.getPayload();
         
         // Find or create user with timeout
-        const userPromise = User.findOne({ email: payload.email });
+        const userPromise = User.findOne({ email: payload.email }).select('_id email username fullName isVerified');
         let user = await Promise.race([userPromise, timeoutPromise]);
 
         if (!user) {
