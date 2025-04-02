@@ -4,6 +4,11 @@ const path = require('path');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
+console.log('Starting server initialization...');
+console.log('Environment:', process.env.NODE_ENV);
+console.log('MongoDB URI present:', !!process.env.MONGODB_URI);
+console.log('Google Client ID present:', !!process.env.GOOGLE_CLIENT_ID);
+
 const app = express();
 
 // Increase the timeout for all routes
@@ -48,22 +53,28 @@ app.use((err, req, res, next) => {
 
 // MongoDB Connection with retry logic
 const connectDB = async () => {
+    console.log('Attempting MongoDB connection...');
+    const startTime = Date.now();
+    
     try {
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000, // Reduced from 30000
-            socketTimeoutMS: 10000, // Reduced from 45000
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 10000,
             retryWrites: true,
             w: 'majority',
             maxPoolSize: 10,
             minPoolSize: 5
         });
         console.log(`MongoDB Connected: ${conn.connection.host}`);
+        console.log(`Connection time: ${Date.now() - startTime}ms`);
     } catch (error) {
         console.error('MongoDB connection error:', error);
+        console.log(`Connection failed after ${Date.now() - startTime}ms`);
         // Don't retry in production
         if (process.env.NODE_ENV !== 'production') {
+            console.log('Retrying connection in 5 seconds...');
             setTimeout(connectDB, 5000);
         }
     }
@@ -72,6 +83,8 @@ const connectDB = async () => {
 // Only connect to MongoDB if we're not in a Vercel serverless function
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
     connectDB();
+} else {
+    console.log('Skipping MongoDB connection in Vercel serverless environment');
 }
 
 // Import routes
@@ -88,7 +101,7 @@ app.use('/api/auth/google', googleAuthRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    console.error('Global error handler:', err.stack);
     res.status(500).json({ 
         message: 'Something went wrong!',
         error: process.env.NODE_ENV === 'development' ? err.message : undefined
@@ -98,43 +111,13 @@ app.use((err, req, res, next) => {
 // Handle 504 Gateway Timeout
 app.use((req, res, next) => {
     res.setTimeout(10000, () => {
+        console.log('Request timed out after 10 seconds');
         res.status(504).json({ message: 'Gateway timeout' });
     });
     next();
 });
 
-// Simple admin login route
-app.post('/api/admin/login', (req, res) => {
-    const { username, password } = req.body;
-    
-    // Hardcoded admin credentials
-    if (username === 'admin' && password === 'admin123') {
-        res.json({ 
-            success: true,
-            admin: { 
-                id: 'admin', 
-                username: 'admin' 
-            }
-        });
-    } else {
-        res.status(401).json({ message: 'Invalid credentials' });
-    }
-});
-
-// Serve frontend files
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
-});
-
-app.get('/admin-login.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/admin-login.html'));
-});
-
-app.get('/admin.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/admin.html'));
-});
-
-// Export the Express app for Vercel
+console.log('Server initialization complete');
 module.exports = app;
 
 // Start server
