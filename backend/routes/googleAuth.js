@@ -11,7 +11,7 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const tokenCache = new Map();
 
 // Set timeout for Google API calls
-const GOOGLE_TIMEOUT = 3000; // 3 seconds
+const GOOGLE_TIMEOUT = 5000; // 5 seconds
 
 // Handle Google OAuth callback
 router.get('/callback', (req, res) => {
@@ -47,13 +47,24 @@ router.post('/', async (req, res) => {
             setTimeout(() => reject(new Error('Operation timed out')), GOOGLE_TIMEOUT);
         });
 
-        // Verify the Google token with timeout
-        const verificationPromise = client.verifyIdToken({
-            idToken: credential,
-            audience: process.env.GOOGLE_CLIENT_ID
-        });
+        // Verify the Google token with timeout and retry
+        let ticket;
+        let retries = 3;
+        while (retries > 0) {
+            try {
+                const verificationPromise = client.verifyIdToken({
+                    idToken: credential,
+                    audience: process.env.GOOGLE_CLIENT_ID
+                });
+                ticket = await Promise.race([verificationPromise, timeoutPromise]);
+                break;
+            } catch (error) {
+                retries--;
+                if (retries === 0) throw error;
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
 
-        const ticket = await Promise.race([verificationPromise, timeoutPromise]);
         const payload = ticket.getPayload();
         
         // Find or create user with timeout
@@ -100,12 +111,14 @@ router.post('/', async (req, res) => {
         if (error.message === 'Operation timed out') {
             return res.status(504).json({ 
                 message: 'Authentication timed out', 
-                error: 'Request took too long to process'
+                error: 'Request took too long to process',
+                retry: true
             });
         }
         res.status(500).json({ 
             message: 'Authentication failed', 
-            error: error.message
+            error: error.message,
+            retry: true
         });
     }
 });

@@ -7,7 +7,11 @@
             "config": {
                 "maxDuration": 60,
                 "memory": 3008,
-                "regions": ["iad1"]
+                "regions": ["sfo1"],
+                "includeFiles": [
+                    "backend/**",
+                    "node_modules/**"
+                ]
             }
         },
         {
