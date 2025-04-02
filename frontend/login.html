@@ -156,9 +156,19 @@
     <!-- API Service -->
     <script src="js/api.js"></script>
     <script>
-        // Set Google client ID
-        window.googleClientId = config.googleClientId;
-        
+        // Initialize Google Sign-In
+        function initializeGoogleSignIn() {
+            const gIdOnload = document.getElementById('g_id_onload');
+            if (gIdOnload) {
+                gIdOnload.setAttribute('data-client_id', config.googleClientId);
+                gIdOnload.setAttribute('data-callback', config.googleConfig.callback);
+                gIdOnload.setAttribute('data-auto_prompt', config.googleConfig.auto_prompt);
+                gIdOnload.setAttribute('data-context', config.googleConfig.context);
+                gIdOnload.setAttribute('data-ux_mode', config.googleConfig.ux_mode);
+                gIdOnload.setAttribute('data-login_uri', config.googleConfig.login_uri);
+            }
+        }
+
         // Handle Google Sign In
         async function handleGoogleSignIn(response) {
             try {
@@ -183,9 +193,8 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Set Google client ID
-            const gIdOnload = document.getElementById('g_id_onload');
-            gIdOnload.setAttribute('data-client_id', config.googleClientId);
+            // Initialize Google Sign-In
+            initializeGoogleSignIn();
             
             const loginForm = document.getElementById('loginForm');
             const errorAlert = document.getElementById('errorAlert');
@@ -205,23 +214,17 @@
             // Form submission
             loginForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
-                errorAlert.style.display = 'none';
                 
                 const email = document.getElementById('email').value;
                 const password = document.getElementById('password').value;
                 
                 try {
                     const data = await api.auth.login(email, password);
-                    
                     if (data.token) {
-                        // Redirect to dashboard
                         window.location.href = 'dashboard.html';
-                    } else {
-                        throw new Error('No token received from server');
                     }
                 } catch (error) {
-                    console.error('Login error:', error);
-                    errorAlert.textContent = error.message || 'An error occurred. Please try again.';
+                    errorAlert.textContent = error.message;
                     errorAlert.style.display = 'block';
                 }
             });

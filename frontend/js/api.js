@@ -5,13 +5,8 @@ const api = {
     // Helper function to handle API responses
     async handleResponse(response) {
         if (!response.ok) {
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                const error = await response.json();
-                throw new Error(error.message || 'An error occurred');
-            } else {
-                throw new Error(`Server error: ${response.status}`);
-            }
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'An error occurred');
         }
         return response.json();
     },
