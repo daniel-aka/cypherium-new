@@ -36,13 +36,26 @@ async function handleUserAuth(payload) {
             throw new Error('Invalid payload: missing required fields');
         }
 
-        // Lookup user with timeout
-        const user = await Promise.race([
-            User.findOne({ email: payload.email }),
-            new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('User lookup timeout')), 5000)
-            )
-        ]);
+        // Lookup user with timeout and retry
+        let user = null;
+        let retries = 3;
+        
+        while (retries > 0) {
+            try {
+                user = await Promise.race([
+                    User.findOne({ email: payload.email }),
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('User lookup timeout')), 5000)
+                    )
+                ]);
+                break;
+            } catch (error) {
+                console.error(`User lookup attempt ${4 - retries} failed:`, error);
+                retries--;
+                if (retries === 0) throw error;
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+            }
+        }
 
         if (user) {
             console.log('Existing user found:', user.email);
@@ -54,12 +67,24 @@ async function handleUserAuth(payload) {
             email: payload.email,
             name: payload.name,
             googleId: payload.sub,
-            profilePicture: payload.picture
+            profilePicture: payload.picture,
+            emailVerified: payload.email_verified || false
         });
 
-        await newUser.save();
-        console.log('New user created successfully');
-        return newUser;
+        // Save with retry
+        retries = 3;
+        while (retries > 0) {
+            try {
+                await newUser.save();
+                console.log('New user created successfully');
+                return newUser;
+            } catch (error) {
+                console.error(`User creation attempt ${4 - retries} failed:`, error);
+                retries--;
+                if (retries === 0) throw error;
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
     } catch (error) {
         console.error('User authentication error:', {
             message: error.message,
@@ -113,7 +138,9 @@ router.post('/', async (req, res) => {
                     useNewUrlParser: true,
                     useUnifiedTopology: true,
                     serverSelectionTimeoutMS: 10000,
-                    socketTimeoutMS: 10000
+                    socketTimeoutMS: 10000,
+                    keepAlive: true,
+                    keepAliveInitialDelay: 300000
                 });
                 console.log('MongoDB reconnected successfully');
             } catch (error) {

@@ -110,18 +110,24 @@ const connectDB = async () => {
         console.log('Attempting to connect to MongoDB...');
         console.log('MongoDB URI:', process.env.MONGODB_URI ? 'Set' : 'Missing');
         
+        // Optimize connection for serverless
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 10000, // Increased timeout
-            socketTimeoutMS: 10000, // Increased timeout
+            serverSelectionTimeoutMS: 10000,
+            socketTimeoutMS: 10000,
             maxPoolSize: 5,
             minPoolSize: 1,
             retryWrites: true,
             retryReads: true,
-            connectTimeoutMS: 10000, // Added connection timeout
-            heartbeatFrequencyMS: 2000, // Added heartbeat
-            maxIdleTimeMS: 10000 // Added max idle time
+            connectTimeoutMS: 10000,
+            heartbeatFrequencyMS: 2000,
+            maxIdleTimeMS: 10000,
+            // Add these options for better serverless support
+            keepAlive: true,
+            keepAliveInitialDelay: 300000,
+            autoIndex: false,
+            family: 4 // Use IPv4, skip trying IPv6
         });
 
         console.log(`MongoDB Connected: ${conn.connection.host}`);
