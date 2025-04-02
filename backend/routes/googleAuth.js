@@ -10,6 +10,9 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 // Cache for storing verified tokens
 const tokenCache = new Map();
 
+// Set timeout for Google API calls
+const GOOGLE_TIMEOUT = 10000; // 10 seconds
+
 router.post('/', async (req, res) => {
     try {
         const { credential } = req.body;
@@ -28,16 +31,23 @@ router.post('/', async (req, res) => {
             return res.json(cachedData);
         }
 
-        // Verify the Google token
-        const ticket = await client.verifyIdToken({
+        // Set timeout for the entire operation
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Operation timed out')), GOOGLE_TIMEOUT);
+        });
+
+        // Verify the Google token with timeout
+        const verificationPromise = client.verifyIdToken({
             idToken: credential,
             audience: process.env.GOOGLE_CLIENT_ID
         });
 
+        const ticket = await Promise.race([verificationPromise, timeoutPromise]);
         const payload = ticket.getPayload();
         
-        // Find or create user
-        let user = await User.findOne({ email: payload.email });
+        // Find or create user with timeout
+        const userPromise = User.findOne({ email: payload.email });
+        let user = await Promise.race([userPromise, timeoutPromise]);
 
         if (!user) {
             user = new User({
@@ -47,7 +57,7 @@ router.post('/', async (req, res) => {
                 isVerified: true,
                 googleId: payload.sub
             });
-            await user.save();
+            await Promise.race([user.save(), timeoutPromise]);
         }
 
         // Generate JWT token
@@ -76,6 +86,12 @@ router.post('/', async (req, res) => {
         res.json(responseData);
     } catch (error) {
         console.error('Google auth error:', error);
+        if (error.message === 'Operation timed out') {
+            return res.status(504).json({ 
+                message: 'Authentication timed out', 
+                error: 'Request took too long to process'
+            });
+        }
         res.status(500).json({ 
             message: 'Authentication failed', 
             error: error.message
