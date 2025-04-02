@@ -181,13 +181,42 @@
             }
         }
 
+        // Show error message
+        function showError(message) {
+            const errorAlert = document.getElementById('errorAlert');
+            errorAlert.textContent = message;
+            errorAlert.style.display = 'block';
+        }
+
         // Handle Google Sign In
         window.handleGoogleSignIn = async (response) => {
             try {
                 console.log('Google sign-in response received');
                 console.log('Credential:', response.credential);
-                const result = await googleSignIn(response.credential);
-                console.log('Sign-in successful:', result);
+                
+                // Make API call to backend
+                const result = await fetch(`${config.backendUrl}/api/auth/google`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ credential: response.credential })
+                });
+
+                if (!result.ok) {
+                    const errorData = await result.json();
+                    throw new Error(errorData.error || 'Failed to sign in with Google');
+                }
+
+                const data = await result.json();
+                console.log('Sign-in successful:', data);
+                
+                // Store the token if received
+                if (data.token) {
+                    localStorage.setItem('token', data.token);
+                }
+                
+                // Redirect to dashboard
                 window.location.href = 'dashboard.html';
             } catch (error) {
                 console.error('Google sign in error:', error);
@@ -231,6 +260,8 @@
                     const data = await api.auth.login(email, password);
                     
                     if (data.token) {
+                        // Store the token
+                        localStorage.setItem('token', data.token);
                         // Redirect to dashboard
                         window.location.href = 'dashboard.html';
                     } else {
@@ -238,8 +269,7 @@
                     }
                 } catch (error) {
                     console.error('Login error:', error);
-                    errorAlert.textContent = error.message || 'An error occurred. Please try again.';
-                    errorAlert.style.display = 'block';
+                    showError(error.message || 'An error occurred. Please try again.');
                 }
             });
         });
