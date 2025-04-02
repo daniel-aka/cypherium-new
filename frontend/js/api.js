@@ -4,11 +4,15 @@ const api = {
     
     // Helper function to handle API responses
     async handleResponse(response) {
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'An error occurred');
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || `HTTP error! status: ${response.status}`);
+            }
+            return data;
         }
-        return response.json();
+        throw new Error('Invalid response format');
     },
 
     // Helper function to get auth headers
@@ -78,12 +82,15 @@ const api = {
                     console.log('Response status:', response.status);
                     console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                    const data = await this.handleResponse(response);
+                    
+                    if (data.token) {
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        return data;
+                    } else {
+                        throw new Error('No token received from server');
                     }
-
-                    return await this.handleResponse(response);
                 } catch (error) {
                     console.error(`Google sign-in attempt ${attempt} failed:`, error);
                     lastError = error;

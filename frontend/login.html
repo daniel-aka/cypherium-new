@@ -163,10 +163,10 @@
             const gIdOnload = document.getElementById('g_id_onload');
             if (gIdOnload) {
                 gIdOnload.setAttribute('data-client_id', config.googleClientId);
-                gIdOnload.setAttribute('data-callback', config.googleConfig.callback);
-                gIdOnload.setAttribute('data-auto_prompt', config.googleConfig.auto_prompt);
-                gIdOnload.setAttribute('data-context', config.googleConfig.context);
-                gIdOnload.setAttribute('data-ux_mode', config.googleConfig.ux_mode);
+                gIdOnload.setAttribute('data-callback', 'handleGoogleSignIn');
+                gIdOnload.setAttribute('data-auto_prompt', 'false');
+                gIdOnload.setAttribute('data-context', 'signin');
+                gIdOnload.setAttribute('data-ux_mode', 'popup');
                 gIdOnload.setAttribute('data-login_uri', config.googleConfig.login_uri);
                 gIdOnload.setAttribute('data-redirect_uri', config.googleConfig.redirect_uri);
             }
@@ -187,10 +187,6 @@
                 
                 if (data.token) {
                     signInStatus.textContent = 'Sign-in successful! Redirecting...';
-                    // Store token and user data
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    // Redirect to dashboard
                     window.location.href = 'dashboard.html';
                 } else {
                     throw new Error('No token received from server');
