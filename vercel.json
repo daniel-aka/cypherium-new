@@ -15,7 +15,13 @@
                 "functions": {
                     "api/auth/google": {
                         "memory": 3008,
-                        "maxDuration": 60
+                        "maxDuration": 60,
+                        "regions": ["sfo1"],
+                        "includeFiles": [
+                            "backend/routes/googleAuth.js",
+                            "backend/models/User.js",
+                            "node_modules/**"
+                        ]
                     }
                 }
             }

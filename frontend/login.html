@@ -112,6 +112,7 @@
             
             <form id="loginForm">
                 <!-- Add Error Alert -->
+                <div class="alert alert-info" id="signInStatus" style="display: none;"></div>
                 <div class="alert alert-danger" id="errorAlert" style="display: none;"></div>
                 
                 <div class="mb-3">
@@ -173,11 +174,19 @@
 
         // Handle Google Sign In
         async function handleGoogleSignIn(response) {
+            const signInStatus = document.getElementById('signInStatus');
+            const errorAlert = document.getElementById('errorAlert');
+            
             try {
+                signInStatus.textContent = 'Signing in with Google...';
+                signInStatus.style.display = 'block';
+                errorAlert.style.display = 'none';
+                
                 console.log('Google sign-in response received');
                 const data = await api.auth.googleSignIn(response.credential);
                 
                 if (data.token) {
+                    signInStatus.textContent = 'Sign-in successful! Redirecting...';
                     // Store token and user data
                     localStorage.setItem('token', data.token);
                     localStorage.setItem('user', JSON.stringify(data.user));
@@ -188,7 +197,7 @@
                 }
             } catch (error) {
                 console.error('Google sign in error:', error);
-                const errorAlert = document.getElementById('errorAlert');
+                signInStatus.style.display = 'none';
                 errorAlert.textContent = `An error occurred during Google sign in: ${error.message}`;
                 errorAlert.style.display = 'block';
             }

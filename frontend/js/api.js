@@ -59,49 +59,43 @@ const api = {
         },
 
         async googleSignIn(credential) {
-            try {
-                const url = `${api.baseUrl}/api/auth/google`;
-                console.log('Attempting Google sign-in to:', url);
-                console.log('Using credential:', credential.substring(0, 20) + '...');
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({ credential })
-                });
-                
-                console.log('Response status:', response.status);
-                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    console.error('Google sign-in error response:', errorData);
-                    throw new Error(errorData.message || 'Failed to sign in with Google');
+            let lastError = null;
+            
+            for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
+                try {
+                    console.log(`Attempting Google sign-in (attempt ${attempt}/${this.retryAttempts})`);
+                    
+                    const response = await fetch(`${this.baseUrl}/api/auth/google`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ credential }),
+                        credentials: 'include'
+                    });
+
+                    console.log('Response status:', response.status);
+                    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                    }
+
+                    return await this.handleResponse(response);
+                } catch (error) {
+                    console.error(`Google sign-in attempt ${attempt} failed:`, error);
+                    lastError = error;
+                    
+                    if (attempt < this.retryAttempts) {
+                        console.log(`Retrying in ${this.retryDelay}ms...`);
+                        await new Promise(resolve => setTimeout(resolve, this.retryDelay));
+                    }
                 }
-                
-                const data = await response.json();
-                console.log('Sign-in successful:', data);
-                
-                if (data.token) {
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                } else {
-                    console.error('No token received in response:', data);
-                    throw new Error('No authentication token received');
-                }
-                
-                return data;
-            } catch (error) {
-                console.error('Google sign-in error:', error);
-                if (error.message === 'Failed to fetch') {
-                    throw new Error(`Unable to connect to the server at ${api.baseUrl}. Please make sure the server is running.`);
-                }
-                throw new Error(error.message || 'Failed to sign in with Google');
             }
+
+            throw new Error(`Failed to sign in with Google after ${this.retryAttempts} attempts: ${lastError?.message || 'Unknown error'}`);
         },
 
         async logout() {
