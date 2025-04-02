@@ -36,18 +36,39 @@ app.use((req, res, next) => {
 
 // CORS configuration
 app.use(cors({
-    origin: [
-        'http://localhost:5500',
-        'http://localhost:5003',
-        'https://cypherium2.vercel.app',
-        'https://cypherium1.vercel.app',
-        'https://cypherium.vercel.app',
-        'https://*.vercel.app'
-    ],
+    origin: function(origin, callback) {
+        const allowedOrigins = [
+            'http://localhost:5500',
+            'http://localhost:5003',
+            'https://cypherium2.vercel.app',
+            'https://cypherium1.vercel.app',
+            'https://cypherium.vercel.app',
+            'https://*.vercel.app'
+        ];
+        
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) === -1) {
+            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+            console.error('CORS error:', { origin, msg });
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'Origin'],
-    exposedHeaders: ['Authorization', 'Content-Type'],
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'Accept',
+        'X-Requested-With',
+        'Origin',
+        'Access-Control-Allow-Origin',
+        'Access-Control-Allow-Headers',
+        'Access-Control-Allow-Methods'
+    ],
+    exposedHeaders: ['Authorization', 'Content-Type', 'Access-Control-Allow-Origin'],
     preflightContinue: false,
     optionsSuccessStatus: 204,
     maxAge: 86400 // 24 hours
@@ -55,6 +76,15 @@ app.use(cors({
 
 // Add pre-flight handling
 app.options('*', cors());
+
+// Add headers middleware
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', req.headers.origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    next();
+});
 
 // Middleware
 app.use(express.json({ limit: '10kb' })); // Limit JSON body size
