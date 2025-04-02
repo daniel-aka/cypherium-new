@@ -10,80 +10,76 @@
             "use": "@vercel/static"
         }
     ],
-    "routes": [
+    "rewrites": [
         {
-            "src": "/api/(.*)",
-            "dest": "backend/server.js"
+            "source": "/api/(.*)",
+            "destination": "backend/server.js"
         },
         {
-            "src": "/css/(.*)",
-            "dest": "frontend/css/$1"
+            "source": "/css/(.*)",
+            "destination": "frontend/css/$1"
         },
         {
-            "src": "/js/(.*)",
-            "dest": "frontend/js/$1"
+            "source": "/js/(.*)",
+            "destination": "frontend/js/$1"
         },
         {
-            "src": "/assets/(.*)",
-            "dest": "frontend/assets/$1"
+            "source": "/assets/(.*)",
+            "destination": "frontend/assets/$1"
         },
         {
-            "src": "/about.html",
-            "dest": "frontend/about.html"
+            "source": "/about.html",
+            "destination": "frontend/about.html"
         },
         {
-            "src": "/login.html",
-            "dest": "frontend/login.html"
+            "source": "/login.html",
+            "destination": "frontend/login.html"
         },
         {
-            "src": "/signup.html",
-            "dest": "frontend/signup.html"
+            "source": "/signup.html",
+            "destination": "frontend/signup.html"
         },
         {
-            "src": "/dashboard.html",
-            "dest": "frontend/dashboard.html"
+            "source": "/dashboard.html",
+            "destination": "frontend/dashboard.html"
         },
         {
-            "src": "/contact.html",
-            "dest": "frontend/contact.html"
+            "source": "/contact.html",
+            "destination": "frontend/contact.html"
         },
         {
-            "src": "/faqs.html",
-            "dest": "frontend/faqs.html"
+            "source": "/faqs.html",
+            "destination": "frontend/faqs.html"
         },
         {
-            "src": "/terms.html",
-            "dest": "frontend/terms.html"
+            "source": "/terms.html",
+            "destination": "frontend/terms.html"
         },
         {
-            "src": "/referral.html",
-            "dest": "frontend/referral.html"
+            "source": "/referral.html",
+            "destination": "frontend/referral.html"
         },
         {
-            "src": "/investment.html",
-            "dest": "frontend/investment.html"
+            "source": "/investment.html",
+            "destination": "frontend/investment.html"
         },
         {
-            "src": "/features.html",
-            "dest": "frontend/features.html"
+            "source": "/features.html",
+            "destination": "frontend/features.html"
         },
         {
-            "src": "/admin.html",
-            "dest": "frontend/admin.html"
+            "source": "/admin.html",
+            "destination": "frontend/admin.html"
         },
         {
-            "src": "/admin-login.html",
-            "dest": "frontend/admin-login.html"
+            "source": "/admin-login.html",
+            "destination": "frontend/admin-login.html"
         },
         {
-            "src": "/(.*)",
-            "dest": "frontend/index.html"
+            "source": "/(.*)",
+            "destination": "frontend/index.html"
         }
     ],
-    "env": {
-        "NODE_ENV": "production",
-        "VERCEL": "1"
-    },
     "headers": [
         {
             "source": "/(.*)",
@@ -110,5 +106,9 @@
                 }
             ]
         }
-    ]
+    ],
+    "env": {
+        "NODE_ENV": "production",
+        "VERCEL": "1"
+    }
 } 
