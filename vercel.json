@@ -10,18 +10,18 @@
             "use": "@vercel/static"
         }
     ],
-    "routes": [
+    "rewrites": [
         {
-            "src": "/api/auth/google",
-            "dest": "/backend/routes/googleAuth.js"
+            "source": "/api/auth/google",
+            "destination": "/backend/routes/googleAuth.js"
         },
         {
-            "src": "/api/(.*)",
-            "dest": "/api/$1"
+            "source": "/api/(.*)",
+            "destination": "/api/$1"
         },
         {
-            "src": "/(.*)",
-            "dest": "/frontend/$1"
+            "source": "/(.*)",
+            "destination": "/frontend/$1"
         }
     ],
     "headers": [
