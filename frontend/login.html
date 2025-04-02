@@ -91,7 +91,10 @@
                 <div id="g_id_onload"
                      data-client_id="699579419882-cpqhtjm1kjl3uaonlhvd8l9t9e6f91np.apps.googleusercontent.com"
                      data-callback="handleGoogleSignIn"
-                     data-auto_prompt="false">
+                     data-auto_prompt="false"
+                     data-context="signin"
+                     data-ux_mode="popup"
+                     data-login_uri="https://cypherium.vercel.app/api/auth/google/callback">
                 </div>
                 <div class="g_id_signin"
                      data-type="standard"
@@ -99,7 +102,8 @@
                      data-theme="outline"
                      data-text="signin_with"
                      data-shape="rectangular"
-                     data-logo_alignment="left">
+                     data-logo_alignment="left"
+                     data-width="300">
                 </div>
             </div>
             
@@ -162,6 +166,9 @@
                 const data = await api.auth.googleSignIn(response.credential);
                 
                 if (data.token) {
+                    // Store token and user data
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
                     // Redirect to dashboard
                     window.location.href = 'dashboard.html';
                 } else {

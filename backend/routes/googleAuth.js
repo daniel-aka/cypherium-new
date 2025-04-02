@@ -13,6 +13,17 @@ const tokenCache = new Map();
 // Set timeout for Google API calls
 const GOOGLE_TIMEOUT = 10000; // 10 seconds
 
+// Handle Google OAuth callback
+router.get('/callback', (req, res) => {
+    res.send(`
+        <script>
+            window.opener.postMessage({ type: 'google-auth-callback', success: true }, '*');
+            window.close();
+        </script>
+    `);
+});
+
+// Handle Google OAuth token verification
 router.post('/', async (req, res) => {
     try {
         const { credential } = req.body;

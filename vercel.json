@@ -24,14 +24,16 @@
                 "Access-Control-Allow-Headers": "Content-Type, Authorization",
                 "Access-Control-Allow-Credentials": "true",
                 "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
-                "Cross-Origin-Embedder-Policy": "require-corp"
+                "Cross-Origin-Embedder-Policy": "require-corp",
+                "Cross-Origin-Resource-Policy": "cross-origin"
             }
         },
         {
             "src": "/(.*)",
             "headers": {
                 "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
-                "Cross-Origin-Embedder-Policy": "require-corp"
+                "Cross-Origin-Embedder-Policy": "require-corp",
+                "Cross-Origin-Resource-Policy": "cross-origin"
             },
             "continue": true
         },
