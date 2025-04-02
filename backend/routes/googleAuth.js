@@ -4,89 +4,34 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { OAuth2Client } = require('google-auth-library');
 
-// Initialize OAuth2Client with environment variables
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// Cache for storing verified tokens
-const tokenCache = new Map();
-
-// Set timeout for Google API calls
-const GOOGLE_TIMEOUT = 10000; // 10 seconds
-
-// Handle Google OAuth callback
-router.get('/callback', (req, res) => {
-    res.send(`
-        <script>
-            window.opener.postMessage({ type: 'google-auth-callback', success: true }, '*');
-            window.close();
-        </script>
-    `);
-});
-
-// Handle Google OAuth token verification
 router.post('/', async (req, res) => {
     try {
         const { credential } = req.body;
 
-        if (!credential) {
-            return res.status(400).json({ message: 'No credential provided' });
-        }
-
-        if (!process.env.GOOGLE_CLIENT_ID) {
-            return res.status(500).json({ message: 'Server configuration error' });
-        }
-
-        // Check cache first
-        if (tokenCache.has(credential)) {
-            const cachedData = tokenCache.get(credential);
-            return res.json(cachedData);
-        }
-
-        // Set timeout for the entire operation
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Operation timed out')), GOOGLE_TIMEOUT);
+        // Verify the Google token
+        const ticket = await client.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID
         });
-
-        // Verify the Google token with timeout and retry
-        let ticket;
-        let retries = 3;
-        let lastError;
-
-        while (retries > 0) {
-            try {
-                const verificationPromise = client.verifyIdToken({
-                    idToken: credential,
-                    audience: process.env.GOOGLE_CLIENT_ID
-                });
-                ticket = await Promise.race([verificationPromise, timeoutPromise]);
-                break;
-            } catch (error) {
-                lastError = error;
-                retries--;
-                if (retries === 0) {
-                    console.error('Google token verification failed after retries:', error);
-                    throw error;
-                }
-                console.log(`Retrying Google token verification (${retries} attempts left)`);
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-        }
 
         const payload = ticket.getPayload();
         
-        // Find or create user with timeout
-        const userPromise = User.findOne({ email: payload.email }).select('_id email username fullName isVerified');
-        let user = await Promise.race([userPromise, timeoutPromise]);
+        // Check if user exists
+        let user = await User.findOne({ email: payload.email });
 
         if (!user) {
+            // Create new user if doesn't exist
             user = new User({
                 email: payload.email,
-                username: payload.email.split('@')[0],
+                username: payload.email.split('@')[0], // Use email prefix as username
                 fullName: payload.name,
-                isVerified: true,
+                isVerified: true, // Google users are pre-verified
                 googleId: payload.sub
             });
-            await Promise.race([user.save(), timeoutPromise]);
+
+            await user.save();
         }
 
         // Generate JWT token
@@ -96,7 +41,7 @@ router.post('/', async (req, res) => {
             { expiresIn: '24h' }
         );
 
-        const responseData = {
+        res.json({
             token,
             user: {
                 id: user._id,
@@ -105,30 +50,10 @@ router.post('/', async (req, res) => {
                 fullName: user.fullName,
                 isVerified: user.isVerified
             }
-        };
-
-        // Cache the response
-        tokenCache.set(credential, responseData);
-        // Remove from cache after 5 minutes
-        setTimeout(() => tokenCache.delete(credential), 5 * 60 * 1000);
-
-        res.json(responseData);
+        });
     } catch (error) {
         console.error('Google auth error:', error);
-        if (error.message === 'Operation timed out') {
-            return res.status(504).json({ 
-                message: 'Authentication timed out', 
-                error: 'Request took too long to process',
-                retry: true,
-                details: 'The authentication process took longer than expected. Please try again.'
-            });
-        }
-        res.status(500).json({ 
-            message: 'Authentication failed', 
-            error: error.message,
-            retry: true,
-            details: 'An unexpected error occurred during authentication. Please try again.'
-        });
+        res.status(500).json({ message: 'Authentication failed', error: error.message });
     }
 });
 

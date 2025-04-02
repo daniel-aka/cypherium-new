@@ -91,12 +91,7 @@
                 <div id="g_id_onload"
                      data-client_id="699579419882-cpqhtjm1kjl3uaonlhvd8l9t9e6f91np.apps.googleusercontent.com"
                      data-callback="handleGoogleSignIn"
-                     data-auto_prompt="false"
-                     data-context="signin"
-                     data-ux_mode="popup"
-                     data-login_uri="https://cypherium.vercel.app/api/auth/google/callback"
-                     data-redirect_uri="https://cypherium.vercel.app"
-                     data-prompt_parent_id="g_id_onload">
+                     data-auto_prompt="false">
                 </div>
                 <div class="g_id_signin"
                      data-type="standard"
@@ -104,8 +99,7 @@
                      data-theme="outline"
                      data-text="signin_with"
                      data-shape="rectangular"
-                     data-logo_alignment="left"
-                     data-width="300">
+                     data-logo_alignment="left">
                 </div>
             </div>
             
@@ -113,7 +107,6 @@
             
             <form id="loginForm">
                 <!-- Add Error Alert -->
-                <div class="alert alert-info" id="signInStatus" style="display: none;"></div>
                 <div class="alert alert-danger" id="errorAlert" style="display: none;"></div>
                 
                 <div class="mb-3">
@@ -159,55 +152,33 @@
     <!-- API Service -->
     <script src="js/api.js"></script>
     <script>
-        // Initialize Google Sign-In
-        function initializeGoogleSignIn() {
-            const gIdOnload = document.getElementById('g_id_onload');
-            if (gIdOnload) {
-                gIdOnload.setAttribute('data-client_id', config.googleClientId);
-                gIdOnload.setAttribute('data-callback', 'handleGoogleSignIn');
-                gIdOnload.setAttribute('data-auto_prompt', 'false');
-                gIdOnload.setAttribute('data-context', 'signin');
-                gIdOnload.setAttribute('data-ux_mode', 'popup');
-                gIdOnload.setAttribute('data-login_uri', config.googleConfig.login_uri);
-                gIdOnload.setAttribute('data-redirect_uri', config.googleConfig.redirect_uri);
-                gIdOnload.setAttribute('data-prompt_parent_id', 'g_id_onload');
-            }
-        }
-
+        // Set Google client ID
+        window.googleClientId = config.googleClientId;
+        
         // Handle Google Sign In
         async function handleGoogleSignIn(response) {
-            const signInStatus = document.getElementById('signInStatus');
-            const errorAlert = document.getElementById('errorAlert');
-            
             try {
-                signInStatus.textContent = 'Signing in with Google...';
-                signInStatus.style.display = 'block';
-                errorAlert.style.display = 'none';
-                
                 console.log('Google sign-in response received');
-                if (!response.credential) {
-                    throw new Error('No credential received from Google');
-                }
-                
                 const data = await api.auth.googleSignIn(response.credential);
                 
                 if (data.token) {
-                    signInStatus.textContent = 'Sign-in successful! Redirecting...';
+                    // Redirect to dashboard
                     window.location.href = 'dashboard.html';
                 } else {
                     throw new Error('No token received from server');
                 }
             } catch (error) {
                 console.error('Google sign in error:', error);
-                signInStatus.style.display = 'none';
+                const errorAlert = document.getElementById('errorAlert');
                 errorAlert.textContent = `An error occurred during Google sign in: ${error.message}`;
                 errorAlert.style.display = 'block';
             }
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize Google Sign-In
-            initializeGoogleSignIn();
+            // Set Google client ID
+            const gIdOnload = document.getElementById('g_id_onload');
+            gIdOnload.setAttribute('data-client_id', config.googleClientId);
             
             const loginForm = document.getElementById('loginForm');
             const errorAlert = document.getElementById('errorAlert');
@@ -227,17 +198,23 @@
             // Form submission
             loginForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
+                errorAlert.style.display = 'none';
                 
                 const email = document.getElementById('email').value;
                 const password = document.getElementById('password').value;
                 
                 try {
                     const data = await api.auth.login(email, password);
+                    
                     if (data.token) {
+                        // Redirect to dashboard
                         window.location.href = 'dashboard.html';
+                    } else {
+                        throw new Error('No token received from server');
                     }
                 } catch (error) {
-                    errorAlert.textContent = error.message;
+                    console.error('Login error:', error);
+                    errorAlert.textContent = error.message || 'An error occurred. Please try again.';
                     errorAlert.style.display = 'block';
                 }
             });
