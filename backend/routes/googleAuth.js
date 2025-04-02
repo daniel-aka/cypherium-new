@@ -2,10 +2,14 @@ const express = require('express');
 const router = express.Router();
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 
 // Initialize Google OAuth client with error handling
 let client;
 try {
+    if (!process.env.GOOGLE_CLIENT_ID) {
+        throw new Error('GOOGLE_CLIENT_ID is not set');
+    }
     client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
     console.log('Google OAuth client initialized successfully');
 } catch (error) {
@@ -21,6 +25,12 @@ async function handleUserAuth(payload) {
     try {
         console.log('Starting user authentication for:', payload.email);
         
+        // Check MongoDB connection
+        if (mongoose.connection.readyState !== 1) {
+            console.error('MongoDB is not connected. Current state:', mongoose.connection.readyState);
+            throw new Error('Database connection is not ready');
+        }
+
         // Validate payload
         if (!payload.email || !payload.sub) {
             throw new Error('Invalid payload: missing required fields');
@@ -54,7 +64,9 @@ async function handleUserAuth(payload) {
         console.error('User authentication error:', {
             message: error.message,
             stack: error.stack,
-            name: error.name
+            name: error.name,
+            code: error.code,
+            mongodbState: mongoose.connection.readyState
         });
         throw error;
     }
@@ -66,7 +78,9 @@ router.post('/', async (req, res) => {
         console.log('Received Google sign-in request');
         console.log('Environment check:', {
             GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Missing',
-            MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Missing'
+            MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Missing',
+            NODE_ENV: process.env.NODE_ENV || 'development',
+            MongoDB_State: mongoose.connection.readyState
         });
         
         const { credential } = req.body;
@@ -87,6 +101,15 @@ router.post('/', async (req, res) => {
             return res.status(500).json({ 
                 error: 'Configuration error',
                 details: 'GOOGLE_CLIENT_ID is not set'
+            });
+        }
+
+        // Check MongoDB connection
+        if (mongoose.connection.readyState !== 1) {
+            console.error('MongoDB is not connected. Current state:', mongoose.connection.readyState);
+            return res.status(500).json({ 
+                error: 'Database error',
+                details: 'Database connection is not ready'
             });
         }
 
@@ -116,7 +139,8 @@ router.post('/', async (req, res) => {
             message: error.message,
             stack: error.stack,
             name: error.name,
-            code: error.code
+            code: error.code,
+            mongodbState: mongoose.connection.readyState
         });
         
         // Handle specific error types
@@ -136,6 +160,12 @@ router.post('/', async (req, res) => {
             return res.status(500).json({ 
                 error: 'Database error',
                 details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        if (error.message.includes('Database connection is not ready')) {
+            return res.status(500).json({ 
+                error: 'Database error',
+                details: 'Database connection is not ready'
             });
         }
         

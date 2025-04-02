@@ -101,6 +101,12 @@ app.use((err, req, res, next) => {
 // MongoDB connection
 const connectDB = async () => {
     try {
+        // Check if already connected
+        if (mongoose.connection.readyState === 1) {
+            console.log('MongoDB already connected');
+            return;
+        }
+
         console.log('Attempting to connect to MongoDB...');
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
@@ -122,6 +128,19 @@ const connectDB = async () => {
             name: conn.connection.name,
             readyState: conn.connection.readyState
         });
+
+        // Handle connection events
+        mongoose.connection.on('error', (err) => {
+            console.error('MongoDB connection error:', err);
+        });
+
+        mongoose.connection.on('disconnected', () => {
+            console.log('MongoDB disconnected');
+        });
+
+        mongoose.connection.on('reconnected', () => {
+            console.log('MongoDB reconnected');
+        });
     } catch (error) {
         console.error('MongoDB Connection Error:', {
             message: error.message,
@@ -137,7 +156,21 @@ const connectDB = async () => {
 };
 
 // Connect to MongoDB in all environments
-connectDB();
+if (process.env.NODE_ENV !== 'test') {
+    connectDB();
+}
+
+// Add MongoDB connection check middleware
+app.use((req, res, next) => {
+    if (mongoose.connection.readyState !== 1) {
+        console.log('MongoDB connection state:', mongoose.connection.readyState);
+        // Try to reconnect if not connected
+        if (mongoose.connection.readyState === 0) {
+            connectDB();
+        }
+    }
+    next();
+});
 
 // Import routes
 const adminRoutes = require('./routes/admin');
