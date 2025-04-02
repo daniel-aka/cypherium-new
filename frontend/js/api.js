@@ -1,3 +1,8 @@
+// Ensure config is loaded
+if (typeof config === 'undefined') {
+    console.error('Config not loaded. Make sure config.js is loaded before api.js');
+}
+
 const api = {
     // Use environment-specific base URL from config
     baseUrl: config.backendUrl,

@@ -166,9 +166,13 @@
         }
 
         // Handle Google Sign In
-        async function handleGoogleSignIn(response) {
+        window.handleGoogleSignIn = async function(response) {
             try {
                 console.log('Google sign-in response received');
+                if (typeof api === 'undefined') {
+                    throw new Error('API not initialized. Please refresh the page.');
+                }
+                
                 const data = await api.auth.googleSignIn(response.credential);
                 
                 if (data.token) {
@@ -213,6 +217,10 @@
                 const password = document.getElementById('password').value;
                 
                 try {
+                    if (typeof api === 'undefined') {
+                        throw new Error('API not initialized. Please refresh the page.');
+                    }
+                    
                     const data = await api.auth.login(email, password);
                     
                     if (data.token) {
