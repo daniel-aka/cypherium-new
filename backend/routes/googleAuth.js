@@ -11,7 +11,7 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const tokenCache = new Map();
 
 // Set timeout for Google API calls
-const GOOGLE_TIMEOUT = 5000; // 5 seconds
+const GOOGLE_TIMEOUT = 10000; // 10 seconds
 
 // Handle Google OAuth callback
 router.get('/callback', (req, res) => {
@@ -50,6 +50,8 @@ router.post('/', async (req, res) => {
         // Verify the Google token with timeout and retry
         let ticket;
         let retries = 3;
+        let lastError;
+
         while (retries > 0) {
             try {
                 const verificationPromise = client.verifyIdToken({
@@ -59,8 +61,13 @@ router.post('/', async (req, res) => {
                 ticket = await Promise.race([verificationPromise, timeoutPromise]);
                 break;
             } catch (error) {
+                lastError = error;
                 retries--;
-                if (retries === 0) throw error;
+                if (retries === 0) {
+                    console.error('Google token verification failed after retries:', error);
+                    throw error;
+                }
+                console.log(`Retrying Google token verification (${retries} attempts left)`);
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
         }
@@ -112,13 +119,15 @@ router.post('/', async (req, res) => {
             return res.status(504).json({ 
                 message: 'Authentication timed out', 
                 error: 'Request took too long to process',
-                retry: true
+                retry: true,
+                details: 'The authentication process took longer than expected. Please try again.'
             });
         }
         res.status(500).json({ 
             message: 'Authentication failed', 
             error: error.message,
-            retry: true
+            retry: true,
+            details: 'An unexpected error occurred during authentication. Please try again.'
         });
     }
 });
