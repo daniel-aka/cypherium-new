@@ -143,10 +143,28 @@
         </div>
     </div>
 
+    <!-- Load configuration first -->
+    <script src="js/config.js"></script>
+    <!-- Then load API implementation -->
+    <script src="js/api.js"></script>
+    <!-- Google OAuth -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Bootstrap JS + Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
-        // Set Google client ID
-        window.googleClientId = config.googleClientId;
-        
+        // Wait for Google Sign-In script to load
+        function initializeGoogleSignIn() {
+            if (typeof google !== 'undefined' && config && config.googleClientId) {
+                // Set Google client ID
+                const gIdOnload = document.getElementById('g_id_onload');
+                gIdOnload.setAttribute('data-client_id', config.googleClientId);
+            } else {
+                // Retry after a short delay
+                setTimeout(initializeGoogleSignIn, 100);
+            }
+        }
+
         // Handle Google Sign In
         async function handleGoogleSignIn(response) {
             try {
@@ -168,9 +186,8 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Set Google client ID
-            const gIdOnload = document.getElementById('g_id_onload');
-            gIdOnload.setAttribute('data-client_id', config.googleClientId);
+            // Initialize Google Sign-In
+            initializeGoogleSignIn();
             
             const loginForm = document.getElementById('loginForm');
             const errorAlert = document.getElementById('errorAlert');
@@ -212,13 +229,5 @@
             });
         });
     </script>
-    <!-- Load configuration first -->
-    <script src="js/config.js"></script>
-    <!-- Then load API implementation -->
-    <script src="js/api.js"></script>
-    <!-- Google OAuth -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <!-- Bootstrap JS + Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
