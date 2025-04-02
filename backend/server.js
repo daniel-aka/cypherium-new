@@ -11,10 +11,11 @@ console.log('Google Client ID present:', !!process.env.GOOGLE_CLIENT_ID);
 
 const app = express();
 
-// Increase the timeout for all routes
+// Optimize for Vercel serverless
 app.use((req, res, next) => {
-    req.setTimeout(10000); // 10 seconds timeout
-    res.setTimeout(10000);
+    // Set shorter timeouts for Vercel
+    req.setTimeout(8000); // 8 seconds to allow for some buffer
+    res.setTimeout(8000);
     next();
 });
 
@@ -40,7 +41,7 @@ app.use(cors({
 app.options('*', cors());
 
 // Middleware
-app.use(express.json());
+app.use(express.json({ limit: '10kb' })); // Limit JSON body size
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Add error handling for JSON parsing
@@ -51,7 +52,7 @@ app.use((err, req, res, next) => {
     next();
 });
 
-// MongoDB Connection with retry logic
+// MongoDB Connection with optimized settings
 const connectDB = async () => {
     console.log('Attempting MongoDB connection...');
     const startTime = Date.now();
@@ -60,12 +61,13 @@ const connectDB = async () => {
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 10000,
+            serverSelectionTimeoutMS: 3000, // Reduced timeout
+            socketTimeoutMS: 5000, // Reduced timeout
             retryWrites: true,
             w: 'majority',
-            maxPoolSize: 10,
-            minPoolSize: 5
+            maxPoolSize: 5, // Reduced pool size
+            minPoolSize: 1, // Minimal pool size
+            connectTimeoutMS: 3000 // Added connection timeout
         });
         console.log(`MongoDB Connected: ${conn.connection.host}`);
         console.log(`Connection time: ${Date.now() - startTime}ms`);
@@ -74,8 +76,8 @@ const connectDB = async () => {
         console.log(`Connection failed after ${Date.now() - startTime}ms`);
         // Don't retry in production
         if (process.env.NODE_ENV !== 'production') {
-            console.log('Retrying connection in 5 seconds...');
-            setTimeout(connectDB, 5000);
+            console.log('Retrying connection in 3 seconds...');
+            setTimeout(connectDB, 3000);
         }
     }
 };
@@ -110,8 +112,8 @@ app.use((err, req, res, next) => {
 
 // Handle 504 Gateway Timeout
 app.use((req, res, next) => {
-    res.setTimeout(10000, () => {
-        console.log('Request timed out after 10 seconds');
+    res.setTimeout(8000, () => {
+        console.log('Request timed out after 8 seconds');
         res.status(504).json({ message: 'Gateway timeout' });
     });
     next();

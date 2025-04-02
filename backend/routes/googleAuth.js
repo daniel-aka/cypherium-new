@@ -4,65 +4,83 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { OAuth2Client } = require('google-auth-library');
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+// Initialize OAuth2Client with timeout
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID, null, {
+    timeout: 3000 // 3 second timeout for Google verification
+});
+
+// Cache for verified tokens
+const tokenCache = new Map();
 
 router.post('/', async (req, res) => {
-    console.log('Google auth request received');
     const startTime = Date.now();
+    console.log('Google auth request received');
     
     try {
         const { credential } = req.body;
-        console.log('Request body received:', { hasCredential: !!credential });
         
         if (!credential) {
-            console.log('No credential provided');
             return res.status(400).json({ message: 'No credential provided' });
         }
 
-        // Set timeout for Google verification
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => {
-                console.log('Google verification timeout after 5 seconds');
-                reject(new Error('Google verification timeout'));
-            }, 5000);
-        });
+        // Check cache first
+        if (tokenCache.has(credential)) {
+            console.log('Using cached token verification');
+            const payload = tokenCache.get(credential);
+            return await handleUserAuth(payload, res, startTime);
+        }
 
-        console.log('Starting Google token verification');
-        const verificationStart = Date.now();
-        
-        // Verify the Google token with timeout
-        const verificationPromise = client.verifyIdToken({
-            idToken: credential,
-            audience: process.env.GOOGLE_CLIENT_ID
-        });
+        // Verify Google token with timeout
+        const ticket = await Promise.race([
+            client.verifyIdToken({
+                idToken: credential,
+                audience: process.env.GOOGLE_CLIENT_ID
+            }),
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Google verification timeout')), 3000)
+            )
+        ]);
 
-        const ticket = await Promise.race([verificationPromise, timeoutPromise]);
-        console.log(`Google verification completed in ${Date.now() - verificationStart}ms`);
-        
         const payload = ticket.getPayload();
-        console.log('Google payload received:', { email: payload.email });
+        // Cache the verified token
+        tokenCache.set(credential, payload);
         
-        // Check if user exists with timeout
-        console.log('Checking for existing user');
-        const userStart = Date.now();
+        return await handleUserAuth(payload, res, startTime);
+    } catch (error) {
+        console.error('Google auth error:', error);
+        const elapsedTime = Date.now() - startTime;
+        console.log(`Request failed after ${elapsedTime}ms`);
         
-        const userPromise = User.findOne({ email: payload.email });
-        const userTimeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => {
-                console.log('Database query timeout after 5 seconds');
-                reject(new Error('Database query timeout'));
-            }, 5000);
+        if (error.message.includes('timeout')) {
+            return res.status(504).json({ 
+                message: 'Request timeout',
+                error: error.message,
+                elapsedTime
+            });
+        }
+        
+        return res.status(500).json({ 
+            message: 'Authentication failed',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            elapsedTime
         });
+    }
+});
 
-        let user = await Promise.race([userPromise, userTimeoutPromise]);
-        console.log(`User lookup completed in ${Date.now() - userStart}ms`);
+// Helper function to handle user authentication
+async function handleUserAuth(payload, res, startTime) {
+    try {
+        // Find or create user with timeout
+        const user = await Promise.race([
+            User.findOne({ email: payload.email }),
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Database query timeout')), 3000)
+            )
+        ]);
 
         if (!user) {
-            console.log('Creating new user');
-            const createStart = Date.now();
-            
-            // Create new user if doesn't exist
-            user = new User({
+            // Create new user with minimal fields
+            const newUser = new User({
                 email: payload.email,
                 username: payload.email.split('@')[0],
                 fullName: payload.name,
@@ -70,61 +88,42 @@ router.post('/', async (req, res) => {
                 googleId: payload.sub
             });
 
-            const savePromise = user.save();
-            const saveTimeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => {
-                    console.log('User creation timeout after 5 seconds');
-                    reject(new Error('User creation timeout'));
-                }, 5000);
-            });
-
-            await Promise.race([savePromise, saveTimeoutPromise]);
-            console.log(`User creation completed in ${Date.now() - createStart}ms`);
+            await Promise.race([
+                newUser.save(),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('User creation timeout')), 3000)
+                )
+            ]);
         }
 
-        console.log('Generating JWT token');
-        const tokenStart = Date.now();
-        
-        // Generate JWT token
+        // Generate minimal JWT token
         const token = jwt.sign(
-            { userId: user._id },
+            { userId: user?._id || newUser._id },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
-        
-        console.log(`Token generation completed in ${Date.now() - tokenStart}ms`);
-        console.log(`Total request time: ${Date.now() - startTime}ms`);
 
-        res.json({
+        const elapsedTime = Date.now() - startTime;
+        console.log(`Request completed in ${elapsedTime}ms`);
+
+        // Return minimal response
+        return res.json({
             token,
             user: {
-                id: user._id,
-                email: user.email,
-                username: user.username,
-                fullName: user.fullName,
-                isVerified: user.isVerified
+                id: user?._id || newUser._id,
+                email: payload.email,
+                isVerified: true
             }
         });
     } catch (error) {
-        console.error('Google auth error:', error);
-        console.log(`Total request time before error: ${Date.now() - startTime}ms`);
-        
-        // Handle specific timeout errors
-        if (error.message.includes('timeout')) {
-            return res.status(504).json({ 
-                message: 'Request timeout',
-                error: error.message,
-                timestamp: Date.now()
-            });
-        }
-        
-        // Handle other errors
-        res.status(500).json({ 
-            message: 'Authentication failed',
+        console.error('User auth error:', error);
+        const elapsedTime = Date.now() - startTime;
+        return res.status(500).json({ 
+            message: 'User authentication failed',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-            timestamp: Date.now()
+            elapsedTime
         });
     }
-});
+}
 
 module.exports = router; 
