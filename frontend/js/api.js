@@ -67,7 +67,6 @@ const api = {
             try {
                 const url = `${api.baseUrl}/api/auth/google`;
                 console.log('Attempting Google sign-in to:', url);
-                console.log('Using backend URL:', api.baseUrl);
                 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -80,36 +79,25 @@ const api = {
                 });
                 
                 console.log('Response status:', response.status);
-                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
                 
                 if (!response.ok) {
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        const error = await response.json();
-                        throw new Error(error.message || 'Failed to sign in with Google');
-                    } else {
-                        const text = await response.text();
-                        console.error('Non-JSON response:', text);
-                        throw new Error(`Server error: ${response.status}`);
-                    }
+                    const errorData = await response.json();
+                    console.error('Google sign-in error:', errorData);
+                    throw new Error(errorData.message || 'Failed to sign in with Google');
                 }
                 
                 const data = await response.json();
                 console.log('Sign-in successful:', data);
                 
-                if (!data.token) {
-                    throw new Error('No authentication token received');
+                if (data.token) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
                 }
                 
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
                 return data;
             } catch (error) {
                 console.error('Google sign-in error:', error);
-                if (error.message === 'Failed to fetch') {
-                    throw new Error(`Unable to connect to the server at ${api.baseUrl}. Please make sure the server is running.`);
-                }
-                throw new Error(error.message || 'Failed to sign in with Google. Please try again.');
+                throw new Error(error.message || 'Failed to sign in with Google');
             }
         },
 

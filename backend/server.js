@@ -8,22 +8,7 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-    origin: function(origin, callback) {
-        const allowedOrigins = [
-            'http://localhost:5500',  // Frontend development server
-            'http://localhost:5003',  // Backend server
-            'https://cypherium2.vercel.app',
-            'https://cypherium1.vercel.app',
-            'https://cypherium.vercel.app',
-            'https://*.vercel.app'    // Allow all Vercel subdomains
-        ];
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            console.log('Blocked origin:', origin);  // Log blocked origins for debugging
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin: 'https://cypherium.vercel.app',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
