@@ -4,10 +4,25 @@ const path = require('path');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-console.log('Starting server initialization...');
-console.log('Environment:', process.env.NODE_ENV);
-console.log('MongoDB URI present:', !!process.env.MONGODB_URI);
-console.log('Google Client ID present:', !!process.env.GOOGLE_CLIENT_ID);
+// Validate required environment variables
+const requiredEnvVars = [
+    'MONGODB_URI',
+    'JWT_SECRET',
+    'GOOGLE_CLIENT_ID',
+    'GOOGLE_CLIENT_SECRET',
+    'GOOGLE_REDIRECT_URI'
+];
+
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+if (missingEnvVars.length > 0) {
+    console.error('Missing required environment variables:', missingEnvVars);
+    process.exit(1);
+}
+
+console.log('Environment check passed. Starting server...');
+console.log('Environment:', process.env.NODE_ENV || 'development');
+console.log('MongoDB URI:', process.env.MONGODB_URI ? 'Set' : 'Missing');
+console.log('Google Client ID:', process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Missing');
 
 const app = express();
 

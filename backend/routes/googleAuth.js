@@ -4,73 +4,29 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { OAuth2Client } = require('google-auth-library');
 
-// Initialize OAuth2Client with timeout
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID, null, {
-    timeout: 3000 // 3 second timeout for Google verification
-});
+// Google OAuth2 client with timeout
+const oauth2Client = new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+);
+
+// Set timeout for Google verification
+oauth2Client.setTimeout(3000);
 
 // Cache for verified tokens
 const tokenCache = new Map();
-
-router.post('/', async (req, res) => {
-    const startTime = Date.now();
-    console.log('Google auth request received');
-    
-    try {
-        const { credential } = req.body;
-        
-        if (!credential) {
-            return res.status(400).json({ message: 'No credential provided' });
-        }
-
-        // Check cache first
-        if (tokenCache.has(credential)) {
-            console.log('Using cached token verification');
-            const payload = tokenCache.get(credential);
-            return await handleUserAuth(payload, res, startTime);
-        }
-
-        // Verify Google token with timeout
-        const ticket = await Promise.race([
-            client.verifyIdToken({
-                idToken: credential,
-                audience: process.env.GOOGLE_CLIENT_ID
-            }),
-            new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Google verification timeout')), 3000)
-            )
-        ]);
-
-        const payload = ticket.getPayload();
-        // Cache the verified token
-        tokenCache.set(credential, payload);
-        
-        return await handleUserAuth(payload, res, startTime);
-    } catch (error) {
-        console.error('Google auth error:', error);
-        const elapsedTime = Date.now() - startTime;
-        console.log(`Request failed after ${elapsedTime}ms`);
-        
-        if (error.message.includes('timeout')) {
-            return res.status(504).json({ 
-                message: 'Request timeout',
-                error: error.message,
-                elapsedTime
-            });
-        }
-        
-        return res.status(500).json({ 
-            message: 'Authentication failed',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-            elapsedTime
-        });
-    }
-});
 
 // Helper function to handle user authentication
 async function handleUserAuth(payload, res, startTime) {
     try {
         console.log('Starting user authentication for:', payload.email);
+        console.log('Payload received:', {
+            email: payload.email,
+            name: payload.name,
+            sub: payload.sub,
+            email_verified: payload.email_verified
+        });
         
         // Find or create user with timeout
         console.log('Looking up user in database...');
@@ -126,6 +82,7 @@ async function handleUserAuth(payload, res, startTime) {
             });
 
             try {
+                console.log('Saving new user to database...');
                 await Promise.race([
                     newUser.save(),
                     new Promise((_, reject) => 
@@ -134,7 +91,11 @@ async function handleUserAuth(payload, res, startTime) {
                 ]);
                 console.log('New user created successfully');
             } catch (saveError) {
-                console.error('Error saving new user:', saveError);
+                console.error('Error saving new user:', {
+                    message: saveError.message,
+                    code: saveError.code,
+                    stack: saveError.stack
+                });
                 if (saveError.code === 11000) { // MongoDB duplicate key error
                     throw new Error('User with this email or username already exists');
                 }
@@ -184,5 +145,57 @@ async function handleUserAuth(payload, res, startTime) {
         });
     }
 }
+
+// Google Sign In route
+router.post('/google', async (req, res) => {
+    const startTime = Date.now();
+    console.log('Google sign-in request received');
+    
+    try {
+        const { credential } = req.body;
+        if (!credential) {
+            console.log('No credential provided in request');
+            return res.status(400).json({ message: 'No credential provided' });
+        }
+
+        console.log('Verifying Google token...');
+        // Verify Google token with timeout
+        const ticket = await Promise.race([
+            oauth2Client.verifyIdToken({
+                idToken: credential,
+                audience: process.env.GOOGLE_CLIENT_ID
+            }),
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Google verification timeout')), 3000)
+            )
+        ]);
+
+        console.log('Google token verified successfully');
+        const payload = ticket.getPayload();
+        
+        // Handle user authentication
+        return handleUserAuth(payload, res, startTime);
+    } catch (error) {
+        console.error('Google auth error:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
+        const elapsedTime = Date.now() - startTime;
+        console.log(`Request failed after ${elapsedTime}ms`);
+        
+        if (error.message.includes('timeout')) {
+            return res.status(504).json({ 
+                message: 'Authentication timeout',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        return res.status(500).json({ 
+            message: 'Authentication failed',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
 
 module.exports = router; 
