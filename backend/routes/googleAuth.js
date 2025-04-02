@@ -11,7 +11,7 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const tokenCache = new Map();
 
 // Set timeout for Google API calls
-const GOOGLE_TIMEOUT = 10000; // 10 seconds
+const GOOGLE_TIMEOUT = 5000; // 5 seconds
 
 // Handle Google OAuth callback
 router.get('/callback', (req, res) => {
