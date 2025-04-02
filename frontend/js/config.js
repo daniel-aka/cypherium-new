@@ -26,5 +26,20 @@ const config = {
     }
 };
 
+// Initialize Google Sign-In when the script loads
+window.onload = function() {
+    if (window.google) {
+        google.accounts.id.initialize({
+            client_id: config.googleClientId,
+            callback: handleGoogleSignIn,
+            auto_prompt: false,
+            context: 'signin',
+            ux_mode: 'popup',
+            login_uri: config.googleConfig.login_uri,
+            redirect_uri: config.googleConfig.redirect_uri
+        });
+    }
+};
+
 // Export the config object
 window.config = config; 
