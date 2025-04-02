@@ -13,11 +13,11 @@
     "rewrites": [
         {
             "source": "/api/auth/google",
-            "destination": "/backend/routes/googleAuth.js"
+            "destination": "/backend/server.js"
         },
         {
             "source": "/api/(.*)",
-            "destination": "/api/$1"
+            "destination": "/backend/server.js"
         },
         {
             "source": "/(.*)",

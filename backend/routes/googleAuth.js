@@ -43,7 +43,7 @@ async function handleUserAuth(payload) {
 }
 
 // Google Sign-In endpoint
-router.post('/google', async (req, res) => {
+router.post('/', async (req, res) => {
     try {
         console.log('Received Google sign-in request');
         const { credential } = req.body;
