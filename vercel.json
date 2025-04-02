@@ -36,8 +36,8 @@
             "destination": "frontend/login.html"
         },
         {
-            "source": "/signup.html",
-            "destination": "frontend/signup.html"
+            "source": "/register.html",
+            "destination": "frontend/register.html"
         },
         {
             "source": "/dashboard.html",
