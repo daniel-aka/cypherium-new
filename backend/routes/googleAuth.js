@@ -154,6 +154,15 @@ router.post('/google', async (req, res) => {
     console.log('Request origin:', req.headers.origin);
     
     try {
+        // Validate environment variables
+        if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+            console.error('Missing Google OAuth configuration');
+            return res.status(500).json({ 
+                message: 'Server configuration error',
+                error: 'Missing Google OAuth credentials'
+            });
+        }
+
         const { credential } = req.body;
         if (!credential) {
             console.log('No credential provided in request');
@@ -178,8 +187,23 @@ router.post('/google', async (req, res) => {
             email: payload.email,
             name: payload.name,
             sub: payload.sub,
-            email_verified: payload.email_verified
+            email_verified: payload.email_verified,
+            aud: payload.aud,
+            iss: payload.iss,
+            exp: payload.exp
         });
+
+        // Validate token audience
+        if (payload.aud !== process.env.GOOGLE_CLIENT_ID) {
+            console.error('Token audience mismatch:', {
+                expected: process.env.GOOGLE_CLIENT_ID,
+                received: payload.aud
+            });
+            return res.status(401).json({ 
+                message: 'Invalid token audience',
+                error: 'Token verification failed'
+            });
+        }
         
         // Handle user authentication
         return handleUserAuth(payload, res, startTime);
@@ -193,6 +217,7 @@ router.post('/google', async (req, res) => {
         const elapsedTime = Date.now() - startTime;
         console.log(`Request failed after ${elapsedTime}ms`);
         
+        // Handle specific error types
         if (error.message.includes('timeout')) {
             return res.status(504).json({ 
                 message: 'Authentication timeout',
@@ -200,17 +225,69 @@ router.post('/google', async (req, res) => {
             });
         }
         
-        // Handle specific Google auth errors
         if (error.name === 'Error' && error.message.includes('Invalid token')) {
             return res.status(401).json({ 
                 message: 'Invalid Google token',
                 error: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
         }
+
+        if (error.name === 'MongoError' || error.name === 'MongoServerError') {
+            return res.status(500).json({ 
+                message: 'Database error',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
         
         return res.status(500).json({ 
             message: 'Authentication failed',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            details: process.env.NODE_ENV === 'development' ? {
+                name: error.name,
+                code: error.code,
+                stack: error.stack
+            } : undefined
+        });
+    }
+});
+
+// Test endpoint for token verification
+router.post('/test', async (req, res) => {
+    try {
+        const { credential } = req.body;
+        if (!credential) {
+            return res.status(400).json({ message: 'No credential provided' });
+        }
+
+        console.log('Testing token verification...');
+        const ticket = await oauth2Client.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+
+        const payload = ticket.getPayload();
+        return res.json({
+            success: true,
+            payload: {
+                email: payload.email,
+                name: payload.name,
+                sub: payload.sub,
+                email_verified: payload.email_verified,
+                aud: payload.aud,
+                iss: payload.iss,
+                exp: payload.exp
+            }
+        });
+    } catch (error) {
+        console.error('Token verification test error:', error);
+        return res.status(400).json({
+            success: false,
+            error: error.message,
+            details: process.env.NODE_ENV === 'development' ? {
+                name: error.name,
+                code: error.code,
+                stack: error.stack
+            } : undefined
         });
     }
 });

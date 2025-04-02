@@ -86,9 +86,24 @@ const api = {
                 if (!response.ok) {
                     const contentType = response.headers.get('content-type');
                     if (contentType && contentType.includes('application/json')) {
-                        const error = await response.json();
-                        console.error('Google sign-in error response:', error);
-                        throw new Error(error.message || 'Failed to sign in with Google');
+                        const errorData = await response.json();
+                        console.error('Google sign-in error response:', {
+                            status: response.status,
+                            message: errorData.message,
+                            error: errorData.error,
+                            details: errorData.details
+                        });
+                        
+                        // Handle specific error cases
+                        if (response.status === 401) {
+                            throw new Error('Invalid Google token. Please try signing in again.');
+                        } else if (response.status === 504) {
+                            throw new Error('Authentication timeout. Please try again.');
+                        } else if (errorData.message === 'User with this email or username already exists') {
+                            throw new Error('An account with this email already exists. Please try logging in with your password.');
+                        }
+                        
+                        throw new Error(errorData.message || 'Failed to sign in with Google');
                     } else {
                         const text = await response.text();
                         console.error('Non-JSON response:', text);
@@ -107,10 +122,16 @@ const api = {
                 localStorage.setItem('user', JSON.stringify(data.user));
                 return data;
             } catch (error) {
-                console.error('Google sign-in error:', error);
+                console.error('Google sign-in error:', {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name
+                });
+                
                 if (error.message === 'Failed to fetch') {
-                    throw new Error(`Unable to connect to the server at ${api.baseUrl}. Please make sure the server is running.`);
+                    throw new Error(`Unable to connect to the server at ${api.baseUrl}. Please check your internet connection.`);
                 }
+                
                 throw new Error(error.message || 'Failed to sign in with Google. Please try again.');
             }
         },
