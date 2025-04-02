@@ -1,20 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
 const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const User = require('../models/User');
 
-// Google OAuth2 client with timeout
-const oauth2Client = new OAuth2Client(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-);
-
-// Set timeout for Google verification
-oauth2Client.setTimeout(3000);
-
-// Cache for verified tokens
+// Token cache to prevent repeated processing
 const tokenCache = new Map();
 
 // Helper function to handle user authentication
@@ -53,11 +43,13 @@ async function handleUserAuth(payload) {
 }
 
 // Google Sign-In endpoint
-router.post('/', async (req, res) => {
+router.post('/google', async (req, res) => {
     try {
+        console.log('Received Google sign-in request');
         const { credential } = req.body;
         
         if (!credential) {
+            console.error('No credential provided');
             return res.status(400).json({ error: 'No credential provided' });
         }
 
@@ -68,7 +60,7 @@ router.post('/', async (req, res) => {
         }
 
         console.log('Verifying Google token');
-        const ticket = await oauth2Client.verifyIdToken({
+        const ticket = await client.verifyIdToken({
             idToken: credential,
             audience: process.env.GOOGLE_CLIENT_ID
         });
@@ -109,7 +101,7 @@ router.post('/test', async (req, res) => {
         }
 
         console.log('Testing token verification...');
-        const ticket = await oauth2Client.verifyIdToken({
+        const ticket = await client.verifyIdToken({
             idToken: credential,
             audience: process.env.GOOGLE_CLIENT_ID
         });

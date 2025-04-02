@@ -10,78 +10,18 @@
             "use": "@vercel/static"
         }
     ],
-    "rewrites": [
+    "routes": [
         {
-            "source": "/api/auth/(.*)",
-            "destination": "/api/auth/$1"
+            "src": "/api/auth/google",
+            "dest": "/backend/routes/googleAuth.js"
         },
         {
-            "source": "/api/(.*)",
-            "destination": "/api/$1"
+            "src": "/api/(.*)",
+            "dest": "/api/$1"
         },
         {
-            "source": "/css/(.*)",
-            "destination": "frontend/css/$1"
-        },
-        {
-            "source": "/js/(.*)",
-            "destination": "frontend/js/$1"
-        },
-        {
-            "source": "/assets/(.*)",
-            "destination": "frontend/assets/$1"
-        },
-        {
-            "source": "/about.html",
-            "destination": "frontend/about.html"
-        },
-        {
-            "source": "/login.html",
-            "destination": "frontend/login.html"
-        },
-        {
-            "source": "/register.html",
-            "destination": "frontend/register.html"
-        },
-        {
-            "source": "/dashboard.html",
-            "destination": "frontend/dashboard.html"
-        },
-        {
-            "source": "/contact.html",
-            "destination": "frontend/contact.html"
-        },
-        {
-            "source": "/faqs.html",
-            "destination": "frontend/faqs.html"
-        },
-        {
-            "source": "/terms.html",
-            "destination": "frontend/terms.html"
-        },
-        {
-            "source": "/referral.html",
-            "destination": "frontend/referral.html"
-        },
-        {
-            "source": "/investment.html",
-            "destination": "frontend/investment.html"
-        },
-        {
-            "source": "/features.html",
-            "destination": "frontend/features.html"
-        },
-        {
-            "source": "/admin.html",
-            "destination": "frontend/admin.html"
-        },
-        {
-            "source": "/admin-login.html",
-            "destination": "frontend/admin-login.html"
-        },
-        {
-            "source": "/(.*)",
-            "destination": "/frontend/$1"
+            "src": "/(.*)",
+            "dest": "/frontend/$1"
         }
     ],
     "headers": [
