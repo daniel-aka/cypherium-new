@@ -107,10 +107,22 @@ router.post('/', async (req, res) => {
         // Check MongoDB connection
         if (mongoose.connection.readyState !== 1) {
             console.error('MongoDB is not connected. Current state:', mongoose.connection.readyState);
-            return res.status(500).json({ 
-                error: 'Database error',
-                details: 'Database connection is not ready'
-            });
+            // Try to reconnect
+            try {
+                await mongoose.connect(process.env.MONGODB_URI, {
+                    useNewUrlParser: true,
+                    useUnifiedTopology: true,
+                    serverSelectionTimeoutMS: 10000,
+                    socketTimeoutMS: 10000
+                });
+                console.log('MongoDB reconnected successfully');
+            } catch (error) {
+                console.error('Failed to reconnect to MongoDB:', error);
+                return res.status(500).json({ 
+                    error: 'Database error',
+                    details: 'Failed to connect to database'
+                });
+            }
         }
 
         console.log('Verifying Google token');

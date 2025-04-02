@@ -108,15 +108,20 @@ const connectDB = async () => {
         }
 
         console.log('Attempting to connect to MongoDB...');
+        console.log('MongoDB URI:', process.env.MONGODB_URI ? 'Set' : 'Missing');
+        
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 8000,
-            maxPoolSize: 10,
-            minPoolSize: 5,
+            serverSelectionTimeoutMS: 10000, // Increased timeout
+            socketTimeoutMS: 10000, // Increased timeout
+            maxPoolSize: 5,
+            minPoolSize: 1,
             retryWrites: true,
-            retryReads: true
+            retryReads: true,
+            connectTimeoutMS: 10000, // Added connection timeout
+            heartbeatFrequencyMS: 2000, // Added heartbeat
+            maxIdleTimeMS: 10000 // Added max idle time
         });
 
         console.log(`MongoDB Connected: ${conn.connection.host}`);
@@ -126,7 +131,9 @@ const connectDB = async () => {
             host: conn.connection.host,
             port: conn.connection.port,
             name: conn.connection.name,
-            readyState: conn.connection.readyState
+            readyState: conn.connection.readyState,
+            maxPoolSize: conn.connection.maxPoolSize,
+            minPoolSize: conn.connection.minPoolSize
         });
 
         // Handle connection events
@@ -161,12 +168,16 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // Add MongoDB connection check middleware
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
     if (mongoose.connection.readyState !== 1) {
         console.log('MongoDB connection state:', mongoose.connection.readyState);
         // Try to reconnect if not connected
         if (mongoose.connection.readyState === 0) {
-            connectDB();
+            try {
+                await connectDB();
+            } catch (error) {
+                console.error('Failed to reconnect to MongoDB:', error);
+            }
         }
     }
     next();
