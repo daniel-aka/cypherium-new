@@ -105,8 +105,8 @@ const connectDB = async () => {
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 3000,
-            socketTimeoutMS: 5000,
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 8000,
             maxPoolSize: 10,
             minPoolSize: 5,
             retryWrites: true,
@@ -129,16 +129,15 @@ const connectDB = async () => {
             code: error.code,
             stack: error.stack
         });
-        process.exit(1);
+        // Don't exit in production, just log the error
+        if (process.env.NODE_ENV !== 'production') {
+            process.exit(1);
+        }
     }
 };
 
-// Only connect to MongoDB if we're not in a Vercel serverless function
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-    connectDB();
-} else {
-    console.log('Skipping MongoDB connection in Vercel serverless environment');
-}
+// Connect to MongoDB in all environments
+connectDB();
 
 // Import routes
 const adminRoutes = require('./routes/admin');

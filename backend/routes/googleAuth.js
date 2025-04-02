@@ -64,6 +64,11 @@ async function handleUserAuth(payload) {
 router.post('/', async (req, res) => {
     try {
         console.log('Received Google sign-in request');
+        console.log('Environment check:', {
+            GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Missing',
+            MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Missing'
+        });
+        
         const { credential } = req.body;
         
         if (!credential) {
@@ -75,6 +80,14 @@ router.post('/', async (req, res) => {
         if (tokenCache.has(credential)) {
             console.log('Using cached token');
             return res.json(tokenCache.get(credential));
+        }
+
+        if (!process.env.GOOGLE_CLIENT_ID) {
+            console.error('GOOGLE_CLIENT_ID is not set');
+            return res.status(500).json({ 
+                error: 'Configuration error',
+                details: 'GOOGLE_CLIENT_ID is not set'
+            });
         }
 
         console.log('Verifying Google token');
@@ -102,7 +115,8 @@ router.post('/', async (req, res) => {
         console.error('Google authentication error:', {
             message: error.message,
             stack: error.stack,
-            name: error.name
+            name: error.name,
+            code: error.code
         });
         
         // Handle specific error types
@@ -117,6 +131,12 @@ router.post('/', async (req, res) => {
         }
         if (error.message.includes('Invalid payload')) {
             return res.status(400).json({ error: error.message });
+        }
+        if (error.name === 'MongoError' || error.name === 'MongoServerError') {
+            return res.status(500).json({ 
+                error: 'Database error',
+                details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
         }
         
         res.status(500).json({ 
