@@ -52,33 +52,38 @@ app.use((err, req, res, next) => {
     next();
 });
 
-// MongoDB Connection with optimized settings
+// MongoDB connection
 const connectDB = async () => {
-    console.log('Attempting MongoDB connection...');
-    const startTime = Date.now();
-    
     try {
+        console.log('Attempting to connect to MongoDB...');
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 3000, // Reduced timeout
-            socketTimeoutMS: 5000, // Reduced timeout
+            serverSelectionTimeoutMS: 3000,
+            socketTimeoutMS: 5000,
+            maxPoolSize: 10,
+            minPoolSize: 5,
             retryWrites: true,
-            w: 'majority',
-            maxPoolSize: 5, // Reduced pool size
-            minPoolSize: 1, // Minimal pool size
-            connectTimeoutMS: 3000 // Added connection timeout
+            retryReads: true
         });
+
         console.log(`MongoDB Connected: ${conn.connection.host}`);
-        console.log(`Connection time: ${Date.now() - startTime}ms`);
+        
+        // Log connection details
+        console.log('MongoDB Connection Details:', {
+            host: conn.connection.host,
+            port: conn.connection.port,
+            name: conn.connection.name,
+            readyState: conn.connection.readyState
+        });
     } catch (error) {
-        console.error('MongoDB connection error:', error);
-        console.log(`Connection failed after ${Date.now() - startTime}ms`);
-        // Don't retry in production
-        if (process.env.NODE_ENV !== 'production') {
-            console.log('Retrying connection in 3 seconds...');
-            setTimeout(connectDB, 3000);
-        }
+        console.error('MongoDB Connection Error:', {
+            message: error.message,
+            name: error.name,
+            code: error.code,
+            stack: error.stack
+        });
+        process.exit(1);
     }
 };
 
@@ -101,11 +106,32 @@ app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/auth/google', googleAuthRoutes);
 
-// Error handling middleware
+// Global error handler
 app.use((err, req, res, next) => {
-    console.error('Global error handler:', err.stack);
+    console.error('Global Error Handler:', {
+        message: err.message,
+        name: err.name,
+        stack: err.stack,
+        path: req.path,
+        method: req.method
+    });
+
+    if (err.name === 'TimeoutError' || err.message.includes('timeout')) {
+        return res.status(504).json({ 
+            message: 'Request timeout',
+            error: process.env.NODE_ENV === 'development' ? err.message : undefined
+        });
+    }
+
+    if (err.name === 'MongoError' || err.name === 'MongoServerError') {
+        return res.status(500).json({ 
+            message: 'Database error',
+            error: process.env.NODE_ENV === 'development' ? err.message : undefined
+        });
+    }
+
     res.status(500).json({ 
-        message: 'Something went wrong!',
+        message: 'Internal server error',
         error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
 });
