@@ -43,7 +43,8 @@
                 "Access-Control-Allow-Credentials": "true",
                 "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
                 "Cross-Origin-Embedder-Policy": "require-corp",
-                "Cross-Origin-Resource-Policy": "cross-origin"
+                "Cross-Origin-Resource-Policy": "cross-origin",
+                "Permissions-Policy": "identity-credentials-get=*"
             }
         },
         {
@@ -57,7 +58,8 @@
                 "Access-Control-Allow-Credentials": "true",
                 "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
                 "Cross-Origin-Embedder-Policy": "require-corp",
-                "Cross-Origin-Resource-Policy": "cross-origin"
+                "Cross-Origin-Resource-Policy": "cross-origin",
+                "Permissions-Policy": "identity-credentials-get=*"
             }
         },
         {
@@ -68,7 +70,11 @@
                 "Access-Control-Allow-Origin": "https://cypherium.vercel.app",
                 "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
                 "Access-Control-Allow-Headers": "Content-Type, Authorization",
-                "Access-Control-Allow-Credentials": "true"
+                "Access-Control-Allow-Credentials": "true",
+                "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+                "Cross-Origin-Embedder-Policy": "require-corp",
+                "Cross-Origin-Resource-Policy": "cross-origin",
+                "Permissions-Policy": "identity-credentials-get=*"
             }
         },
         {
@@ -76,7 +82,8 @@
             "headers": {
                 "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
                 "Cross-Origin-Embedder-Policy": "require-corp",
-                "Cross-Origin-Resource-Policy": "cross-origin"
+                "Cross-Origin-Resource-Policy": "cross-origin",
+                "Permissions-Policy": "identity-credentials-get=*"
             },
             "continue": true
         },

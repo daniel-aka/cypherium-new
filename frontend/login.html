@@ -95,7 +95,8 @@
                      data-context="signin"
                      data-ux_mode="popup"
                      data-login_uri="https://cypherium.vercel.app/api/auth/google/callback"
-                     data-redirect_uri="https://cypherium.vercel.app">
+                     data-redirect_uri="https://cypherium.vercel.app"
+                     data-prompt_parent_id="g_id_onload">
                 </div>
                 <div class="g_id_signin"
                      data-type="standard"
@@ -169,6 +170,7 @@
                 gIdOnload.setAttribute('data-ux_mode', 'popup');
                 gIdOnload.setAttribute('data-login_uri', config.googleConfig.login_uri);
                 gIdOnload.setAttribute('data-redirect_uri', config.googleConfig.redirect_uri);
+                gIdOnload.setAttribute('data-prompt_parent_id', 'g_id_onload');
             }
         }
 
@@ -183,6 +185,10 @@
                 errorAlert.style.display = 'none';
                 
                 console.log('Google sign-in response received');
+                if (!response.credential) {
+                    throw new Error('No credential received from Google');
+                }
+                
                 const data = await api.auth.googleSignIn(response.credential);
                 
                 if (data.token) {
