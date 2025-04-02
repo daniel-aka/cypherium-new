@@ -6,6 +6,13 @@ require('dotenv').config();
 
 const app = express();
 
+// Increase the timeout for all routes
+app.use((req, res, next) => {
+    req.setTimeout(10000); // 10 seconds timeout
+    res.setTimeout(10000);
+    next();
+});
+
 // CORS configuration
 app.use(cors({
     origin: [
@@ -45,8 +52,8 @@ const connectDB = async () => {
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 30000,
-            socketTimeoutMS: 45000,
+            serverSelectionTimeoutMS: 5000, // Reduced from 30000
+            socketTimeoutMS: 10000, // Reduced from 45000
             retryWrites: true,
             w: 'majority',
             maxPoolSize: 10,
@@ -86,6 +93,14 @@ app.use((err, req, res, next) => {
         message: 'Something went wrong!',
         error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
+});
+
+// Handle 504 Gateway Timeout
+app.use((req, res, next) => {
+    res.setTimeout(10000, () => {
+        res.status(504).json({ message: 'Gateway timeout' });
+    });
+    next();
 });
 
 // Simple admin login route
