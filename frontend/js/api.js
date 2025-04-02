@@ -73,7 +73,8 @@ const api = {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'Origin': window.location.origin
                     },
                     credentials: 'include',
                     body: JSON.stringify({ credential })
@@ -86,6 +87,7 @@ const api = {
                     const contentType = response.headers.get('content-type');
                     if (contentType && contentType.includes('application/json')) {
                         const error = await response.json();
+                        console.error('Google sign-in error response:', error);
                         throw new Error(error.message || 'Failed to sign in with Google');
                     } else {
                         const text = await response.text();

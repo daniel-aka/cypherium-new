@@ -150,6 +150,8 @@ async function handleUserAuth(payload, res, startTime) {
 router.post('/google', async (req, res) => {
     const startTime = Date.now();
     console.log('Google sign-in request received');
+    console.log('Request headers:', req.headers);
+    console.log('Request origin:', req.headers.origin);
     
     try {
         const { credential } = req.body;
@@ -172,6 +174,12 @@ router.post('/google', async (req, res) => {
 
         console.log('Google token verified successfully');
         const payload = ticket.getPayload();
+        console.log('Token payload:', {
+            email: payload.email,
+            name: payload.name,
+            sub: payload.sub,
+            email_verified: payload.email_verified
+        });
         
         // Handle user authentication
         return handleUserAuth(payload, res, startTime);
@@ -179,7 +187,8 @@ router.post('/google', async (req, res) => {
         console.error('Google auth error:', {
             message: error.message,
             stack: error.stack,
-            name: error.name
+            name: error.name,
+            code: error.code
         });
         const elapsedTime = Date.now() - startTime;
         console.log(`Request failed after ${elapsedTime}ms`);
@@ -187,6 +196,14 @@ router.post('/google', async (req, res) => {
         if (error.message.includes('timeout')) {
             return res.status(504).json({ 
                 message: 'Authentication timeout',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        // Handle specific Google auth errors
+        if (error.name === 'Error' && error.message.includes('Invalid token')) {
+            return res.status(401).json({ 
+                message: 'Invalid Google token',
                 error: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
         }
