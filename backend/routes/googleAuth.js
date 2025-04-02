@@ -4,49 +4,50 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { OAuth2Client } = require('google-auth-library');
 
+// Initialize OAuth2Client with environment variables
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// Cache for storing verified tokens
+const tokenCache = new Map();
 
 router.post('/', async (req, res) => {
     try {
-        console.log('Received Google auth request:', req.body);
         const { credential } = req.body;
 
         if (!credential) {
-            console.error('No credential provided in request');
             return res.status(400).json({ message: 'No credential provided' });
         }
 
         if (!process.env.GOOGLE_CLIENT_ID) {
-            console.error('GOOGLE_CLIENT_ID is not set');
             return res.status(500).json({ message: 'Server configuration error' });
         }
 
+        // Check cache first
+        if (tokenCache.has(credential)) {
+            const cachedData = tokenCache.get(credential);
+            return res.json(cachedData);
+        }
+
         // Verify the Google token
-        console.log('Verifying Google token with client ID:', process.env.GOOGLE_CLIENT_ID);
         const ticket = await client.verifyIdToken({
             idToken: credential,
             audience: process.env.GOOGLE_CLIENT_ID
         });
 
         const payload = ticket.getPayload();
-        console.log('Token verified successfully for user:', payload.email);
         
-        // Check if user exists
+        // Find or create user
         let user = await User.findOne({ email: payload.email });
 
         if (!user) {
-            console.log('Creating new user for:', payload.email);
-            // Create new user if doesn't exist
             user = new User({
                 email: payload.email,
-                username: payload.email.split('@')[0], // Use email prefix as username
+                username: payload.email.split('@')[0],
                 fullName: payload.name,
-                isVerified: true, // Google users are pre-verified
+                isVerified: true,
                 googleId: payload.sub
             });
-
             await user.save();
-            console.log('New user created successfully');
         }
 
         // Generate JWT token
@@ -56,8 +57,7 @@ router.post('/', async (req, res) => {
             { expiresIn: '24h' }
         );
 
-        console.log('Authentication successful for user:', user.email);
-        res.json({
+        const responseData = {
             token,
             user: {
                 id: user._id,
@@ -66,14 +66,19 @@ router.post('/', async (req, res) => {
                 fullName: user.fullName,
                 isVerified: user.isVerified
             }
-        });
+        };
+
+        // Cache the response
+        tokenCache.set(credential, responseData);
+        // Remove from cache after 5 minutes
+        setTimeout(() => tokenCache.delete(credential), 5 * 60 * 1000);
+
+        res.json(responseData);
     } catch (error) {
         console.error('Google auth error:', error);
-        console.error('Error stack:', error.stack);
         res.status(500).json({ 
             message: 'Authentication failed', 
-            error: error.message,
-            details: error.stack
+            error: error.message
         });
     }
 });
