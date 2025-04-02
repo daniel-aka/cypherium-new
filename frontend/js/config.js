@@ -4,8 +4,8 @@ const config = {
     
     // Backend URL - ensure it matches the server port
     backendUrl: window.location.hostname === 'localhost' 
-        ? 'http://localhost:5003'  // Backend server port
-        : 'https://cypherium.vercel.app',
+        ? 'http://localhost:5500'  // Local development
+        : 'https://cypherium.vercel.app',  // Production
     
     // Google OAuth client ID
     googleClientId: '699579419882-cpqhtjm1kjl3uaonlhvd8l9t9e6f91np.apps.googleusercontent.com',
@@ -17,7 +17,12 @@ const config = {
         auto_prompt: false,
         context: 'signin',
         ux_mode: 'popup',
-        login_uri: 'https://cypherium.vercel.app/api/auth/google/callback'
+        login_uri: window.location.hostname === 'localhost' 
+            ? 'http://localhost:5500/api/auth/google/callback'
+            : 'https://cypherium.vercel.app/api/auth/google/callback',
+        redirect_uri: window.location.hostname === 'localhost'
+            ? 'http://localhost:5500'
+            : 'https://cypherium.vercel.app'
     }
 };
 

@@ -94,7 +94,8 @@
                      data-auto_prompt="false"
                      data-context="signin"
                      data-ux_mode="popup"
-                     data-login_uri="https://cypherium.vercel.app/api/auth/google/callback">
+                     data-login_uri="https://cypherium.vercel.app/api/auth/google/callback"
+                     data-redirect_uri="https://cypherium.vercel.app">
                 </div>
                 <div class="g_id_signin"
                      data-type="standard"
@@ -166,6 +167,7 @@
                 gIdOnload.setAttribute('data-context', config.googleConfig.context);
                 gIdOnload.setAttribute('data-ux_mode', config.googleConfig.ux_mode);
                 gIdOnload.setAttribute('data-login_uri', config.googleConfig.login_uri);
+                gIdOnload.setAttribute('data-redirect_uri', config.googleConfig.redirect_uri);
             }
         }
 

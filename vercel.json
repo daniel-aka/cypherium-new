@@ -41,6 +41,20 @@
             }
         },
         {
+            "src": "/api/auth/google/callback",
+            "dest": "backend/server.js",
+            "methods": ["GET"],
+            "headers": {
+                "Access-Control-Allow-Origin": "https://cypherium.vercel.app",
+                "Access-Control-Allow-Methods": "GET, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization",
+                "Access-Control-Allow-Credentials": "true",
+                "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+                "Cross-Origin-Embedder-Policy": "require-corp",
+                "Cross-Origin-Resource-Policy": "cross-origin"
+            }
+        },
+        {
             "src": "/api/(.*)",
             "dest": "backend/server.js",
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
