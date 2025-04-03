@@ -411,6 +411,38 @@
         .navbar-toggler-icon {
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
         }
+
+        .dropdown-menu {
+            background-color: var(--primary-color);
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .dropdown-item {
+            color: white !important;
+            padding: 0.75rem 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .dropdown-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--accent-color) !important;
+        }
+
+        .dropdown-divider {
+            border-color: rgba(255, 255, 255, 0.1);
+            margin: 0.5rem 0;
+        }
+
+        .dropdown-item.text-danger {
+            color: #ff6b6b !important;
+        }
+
+        .dropdown-item.text-danger:hover {
+            color: #ff4444 !important;
+            background-color: rgba(255, 0, 0, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -970,21 +1002,36 @@
         // Check authentication on page load
         if (!auth.checkAuth()) {
             console.log('Not authenticated, redirecting to login...');
+            window.location.href = 'login.html';
         } else {
             // Load user info
             const user = JSON.parse(localStorage.getItem('user'));
+            console.log('User data from localStorage:', user);
+            
+            if (!user) {
+                console.error('No user data found in localStorage');
+                window.location.href = 'login.html';
+                return;
+            }
+
             const username = user.username || user.email || 'User';
+            console.log('Displaying username:', username);
+            
+            // Update UI elements
             document.getElementById('userName').textContent = username;
             document.getElementById('userFullName').textContent = username;
             document.getElementById('walletBalance').textContent = `$${user.balance.toFixed(2)}`;
             document.getElementById('totalInvestments').textContent = `$${user.totalInvested.toFixed(2)}`;
             document.getElementById('totalEarnings').textContent = `$${user.totalEarnings.toFixed(2)}`;
+            
+            // Load fresh data from server
             loadUserData();
         }
 
         // Load user data
         async function loadUserData() {
             try {
+                console.log('Fetching user data from server...');
                 const response = await fetch(`${api.baseUrl}/api/users/profile`, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -992,11 +1039,14 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to load user data');
+                    throw new Error(`Failed to load user data: ${response.status}`);
                 }
 
                 const data = await response.json();
+                console.log('User data from server:', data);
+                
                 const username = data.username || data.email || 'User';
+                console.log('Updating UI with username:', username);
                 
                 // Update username in dropdown
                 document.getElementById('userName').textContent = username;
@@ -1007,8 +1057,18 @@
                 if (walletBalanceElement && data.balance !== undefined) {
                     walletBalanceElement.textContent = `$${data.balance.toFixed(2)}`;
                 }
+
+                // Update other user data
+                if (data.totalInvested !== undefined) {
+                    document.getElementById('totalInvestments').textContent = `$${data.totalInvested.toFixed(2)}`;
+                }
+                if (data.totalEarnings !== undefined) {
+                    document.getElementById('totalEarnings').textContent = `$${data.totalEarnings.toFixed(2)}`;
+                }
             } catch (error) {
                 console.error('Error loading user data:', error);
+                // Show error to user
+                showAlert('Failed to load user data. Please try refreshing the page.', 'danger');
             }
         }
 
@@ -1057,8 +1117,12 @@
             }
 
             // Add logout functionality
-            document.getElementById('logoutBtn').addEventListener('click', () => {
+            document.getElementById('logoutBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                // Clear all stored data
                 localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                // Redirect to login page
                 window.location.href = 'login.html';
             });
         });
@@ -1122,123 +1186,6 @@
             openWithdrawalModal();
         });
 
-        // Function to calculate profits
-        function calculateProfits() {
-            const planSelect = document.getElementById('planSelect');
-            const amountInput = document.getElementById('investmentAmount');
-            const amount = parseFloat(amountInput.value) || 0;
-            
-            let dailyRate, totalRate;
-            switch(planSelect.value) {
-                case 'Gold Plan':
-                    dailyRate = 0.04; // 4% daily
-                    totalRate = 1.2; // 120% total
-                    break;
-                case 'Silver Plan':
-                    dailyRate = 0.0267; // 2.67% daily
-                    totalRate = 0.8; // 80% total
-                    break;
-                case 'Bronze Plan':
-                    dailyRate = 0.0167; // 1.67% daily
-                    totalRate = 0.5; // 50% total
-                    break;
-            }
-
-            const dailyProfit = amount * dailyRate;
-            const totalProfit = amount * totalRate;
-
-            document.getElementById('dailyProfit').textContent = `$${dailyProfit.toFixed(2)}`;
-            document.getElementById('totalProfit').textContent = `$${totalProfit.toFixed(2)}`;
-        }
-
-        // Add event listeners for real-time calculation
-        document.getElementById('planSelect').addEventListener('change', calculateProfits);
-        document.getElementById('investmentAmount').addEventListener('input', calculateProfits);
-
-        // Function to update amount limits based on selected plan
-        function updateAmountLimits() {
-            const planSelect = document.getElementById('planSelect');
-            const amountInput = document.getElementById('investmentAmount');
-            const amountHelp = document.getElementById('amountHelp');
-            const investButton = document.getElementById('investButton');
-
-            if (!planSelect.value) {
-                amountInput.disabled = true;
-                amountInput.value = '';
-                amountHelp.textContent = 'Please select a plan first';
-                investButton.disabled = true;
-                return;
-            }
-
-            amountInput.disabled = false;
-            investButton.disabled = false;
-
-            switch(planSelect.value) {
-                case 'Gold Plan':
-                    amountInput.min = 25000;
-                    amountInput.max = 500000;
-                    amountHelp.textContent = `Enter amount between $25,000 and $500,000`;
-                    break;
-                case 'Silver Plan':
-                    amountInput.min = 500;
-                    amountInput.max = 24000;
-                    amountHelp.textContent = `Enter amount between $500 and $24,000`;
-                    break;
-                case 'Bronze Plan':
-                    amountInput.min = 200;
-                    amountInput.max = 12500;
-                    amountHelp.textContent = `Enter amount between $200 and $12,500`;
-                    break;
-            }
-
-            validateAmount();
-        }
-
-        // Function to validate amount
-        function validateAmount() {
-            const planSelect = document.getElementById('planSelect');
-            const amountInput = document.getElementById('investmentAmount');
-            const amountHelp = document.getElementById('amountHelp');
-            const investButton = document.getElementById('investButton');
-
-            if (!planSelect.value) {
-                amountHelp.textContent = 'Please select a plan first';
-                investButton.disabled = true;
-                return;
-            }
-
-            const amount = parseFloat(amountInput.value) || 0;
-            let minAmount, maxAmount;
-
-            switch(planSelect.value) {
-                case 'Gold Plan':
-                    minAmount = 25000;
-                    maxAmount = 500000;
-                    break;
-                case 'Silver Plan':
-                    minAmount = 500;
-                    maxAmount = 24000;
-                    break;
-                case 'Bronze Plan':
-                    minAmount = 200;
-                    maxAmount = 12500;
-                    break;
-            }
-
-            if (amount < minAmount) {
-                amountHelp.textContent = `Minimum amount is $${minAmount}`;
-                investButton.disabled = true;
-            } else if (amount > maxAmount) {
-                amountHelp.textContent = `Maximum amount is $${maxAmount}`;
-                investButton.disabled = true;
-            } else {
-                amountHelp.textContent = '';
-                investButton.disabled = false;
-            }
-
-            calculateProfits();
-        }
-
         // Function to submit investment
         function submitInvestment() {
             const planSelect = document.getElementById('planSelect');
@@ -1276,16 +1223,16 @@
             let dailyRate, totalRate;
             switch(planSelect.value) {
                 case 'Gold Plan':
-                    dailyRate = 0.04;
-                    totalRate = 1.2;
+                    dailyRate = 0.04; // 4% daily
+                    totalRate = 1.2; // 120% total
                     break;
                 case 'Silver Plan':
-                    dailyRate = 0.0267;
-                    totalRate = 0.8;
+                    dailyRate = 0.0267; // 2.67% daily
+                    totalRate = 0.8; // 80% total
                     break;
                 case 'Bronze Plan':
-                    dailyRate = 0.0167;
-                    totalRate = 0.5;
+                    dailyRate = 0.0167; // 1.67% daily
+                    totalRate = 0.5; // 50% total
                     break;
             }
 
