@@ -102,26 +102,8 @@ async function handleUserAuth(payload) {
 router.post('/', async (req, res) => {
     try {
         console.log('Received Google sign-in request');
-        console.log('Environment check:', {
-            GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Missing',
-            MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Missing',
-            NODE_ENV: process.env.NODE_ENV || 'development',
-            MongoDB_State: mongoose.connection.readyState
-        });
         
-        const { credential } = req.body;
-
-        if (!credential) {
-            console.error('No credential provided');
-            return res.status(400).json({ error: 'No credential provided' });
-        }
-
-        // Check token cache
-        if (tokenCache.has(credential)) {
-            console.log('Using cached token');
-            return res.json(tokenCache.get(credential));
-        }
-
+        // Check environment variables
         if (!process.env.GOOGLE_CLIENT_ID) {
             console.error('GOOGLE_CLIENT_ID is not set');
             return res.status(500).json({ 
@@ -130,29 +112,22 @@ router.post('/', async (req, res) => {
             });
         }
 
-        // Check MongoDB connection
-        if (mongoose.connection.readyState !== 1) {
-            console.error('MongoDB is not connected. Current state:', mongoose.connection.readyState);
-            // Try to reconnect
-            try {
-                await mongoose.connect(process.env.MONGODB_URI, {
-                    useNewUrlParser: true,
-                    useUnifiedTopology: true,
-                    serverSelectionTimeoutMS: 5000,
-                    socketTimeoutMS: 5000,
-                    keepAlive: true,
-                    keepAliveInitialDelay: 300000
-                });
-                console.log('MongoDB reconnected successfully');
-            } catch (error) {
-                console.error('Failed to reconnect to MongoDB:', error);
-                return res.status(503).json({ 
-                    error: 'Database error',
-                    details: 'Failed to connect to database'
-                });
-            }
+        if (!process.env.MONGODB_URI) {
+            console.error('MONGODB_URI is not set');
+            return res.status(500).json({ 
+                error: 'Configuration error',
+                details: 'MONGODB_URI is not set'
+            });
         }
 
+        const { credential } = req.body;
+
+        if (!credential) {
+            console.error('No credential provided');
+            return res.status(400).json({ error: 'No credential provided' });
+        }
+
+        // Verify Google token
         console.log('Verifying Google token');
         const ticket = await client.verifyIdToken({
             idToken: credential,
@@ -162,13 +137,48 @@ router.post('/', async (req, res) => {
         const payload = ticket.getPayload();
         console.log('Token verified for:', payload.email);
 
-        // Validate token audience
-        if (payload.aud !== process.env.GOOGLE_CLIENT_ID) {
-            console.error('Invalid token audience:', payload.aud);
-            return res.status(401).json({ error: 'Invalid token audience' });
+        // Check MongoDB connection
+        if (mongoose.connection.readyState !== 1) {
+            console.log('Attempting to reconnect to MongoDB...');
+            try {
+                await mongoose.connect(process.env.MONGODB_URI, {
+                    useNewUrlParser: true,
+                    useUnifiedTopology: true,
+                    serverSelectionTimeoutMS: 5000
+                });
+                console.log('MongoDB connected successfully');
+            } catch (error) {
+                console.error('Failed to connect to MongoDB:', error);
+                return res.status(503).json({ 
+                    error: 'Database error',
+                    details: 'Failed to connect to database'
+                });
+            }
         }
 
-        const user = await handleUserAuth(payload);
+        // Find or create user
+        let user = await User.findOne({ email: payload.email });
+        
+        if (!user) {
+            console.log('Creating new user for:', payload.email);
+            user = new User({
+                email: payload.email,
+                fullName: payload.name,
+                googleId: payload.sub,
+                isVerified: payload.email_verified || false
+            });
+            
+            try {
+                await user.save();
+                console.log('New user created successfully');
+            } catch (error) {
+                console.error('Error creating user:', error);
+                return res.status(500).json({ 
+                    error: 'User creation failed',
+                    details: error.message
+                });
+            }
+        }
 
         // Generate JWT token
         const token = jwt.sign(
@@ -181,48 +191,25 @@ router.post('/', async (req, res) => {
             { expiresIn: '24h' }
         );
 
-        // Cache the token result
-        tokenCache.set(credential, { user, token });
-        
-        res.json({ user, token });
+        res.json({ 
+            user: {
+                id: user._id,
+                email: user.email,
+                fullName: user.fullName,
+                role: user.role
+            },
+            token 
+        });
     } catch (error) {
         console.error('Google authentication error:', {
             message: error.message,
             stack: error.stack,
-            name: error.name,
-            code: error.code,
-            mongodbState: mongoose.connection.readyState
+            name: error.name
         });
-        
-        // Handle specific error types
-        if (error.message.includes('Token used too late')) {
-            return res.status(401).json({ error: 'Token expired' });
-        }
-        if (error.message.includes('Invalid token signature')) {
-            return res.status(401).json({ error: 'Invalid token' });
-        }
-        if (error.message.includes('User lookup timeout')) {
-            return res.status(504).json({ error: 'Database timeout' });
-        }
-        if (error.message.includes('Invalid payload')) {
-            return res.status(400).json({ error: error.message });
-        }
-        if (error.name === 'MongoError' || error.name === 'MongoServerError') {
-            return res.status(503).json({ 
-                error: 'Database error',
-                details: process.env.NODE_ENV === 'development' ? error.message : undefined
-            });
-        }
-        if (error.message.includes('Database connection is not ready')) {
-            return res.status(503).json({ 
-                error: 'Database error',
-                details: 'Database connection is not ready'
-            });
-        }
         
         res.status(500).json({ 
             error: 'Authentication failed',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            details: error.message
         });
     }
 });
@@ -299,6 +286,45 @@ router.post('/test', async (req, res) => {
                 code: error.code,
                 clientId: process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Not set'
             }
+        });
+    }
+});
+
+// Test database connection
+router.get('/test-db', async (req, res) => {
+    try {
+        console.log('Testing MongoDB connection...');
+        
+        // Check connection state
+        const connectionState = mongoose.connection.readyState;
+        console.log('MongoDB connection state:', connectionState);
+        
+        if (connectionState !== 1) {
+            console.log('Attempting to connect to MongoDB...');
+            await mongoose.connect(process.env.MONGODB_URI, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true,
+                serverSelectionTimeoutMS: 5000
+            });
+            console.log('MongoDB connected successfully');
+        }
+
+        // Try a simple query
+        const userCount = await User.countDocuments();
+        console.log('User count:', userCount);
+
+        res.json({
+            status: 'success',
+            message: 'Database connection successful',
+            connectionState: mongoose.connection.readyState,
+            userCount
+        });
+    } catch (error) {
+        console.error('Database connection test failed:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Database connection failed',
+            error: error.message
         });
     }
 });
