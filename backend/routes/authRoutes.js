@@ -3,7 +3,6 @@ const router = express.Router();
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const auth = require('../middleware/auth');
-const bcrypt = require('bcryptjs');
 
 // Register new user
 router.post('/register', async (req, res) => {
@@ -54,34 +53,21 @@ router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        if (!email || !password) {
-            return res.status(400).json({
-                error: 'Missing credentials',
-                message: 'Please provide both email and password'
-            });
-        }
-
-        // Find user by email
-        const user = await User.findOne({ email });
+        // Find user and explicitly select password field
+        const user = await User.findOne({ email }).select('+password');
         if (!user) {
-            return res.status(401).json({
-                error: 'Invalid credentials',
-                message: 'Email or password is incorrect'
-            });
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
 
-        // Verify password
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-            return res.status(401).json({
-                error: 'Invalid credentials',
-                message: 'Email or password is incorrect'
-            });
+        // Compare password
+        const isMatch = await user.comparePassword(password);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
 
-        // Generate JWT token
+        // Generate token
         const token = jwt.sign(
-            { userId: user._id, email: user.email },
+            { userId: user._id },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
@@ -92,16 +78,11 @@ router.post('/login', async (req, res) => {
                 id: user._id,
                 email: user.email,
                 username: user.username,
-                fullName: user.fullName,
-                profilePicture: user.profilePicture
+                fullName: user.fullName
             }
         });
     } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({
-            error: 'Login failed',
-            message: 'An error occurred during login'
-        });
+        res.status(500).json({ message: 'Login failed', error: error.message });
     }
 });
 
