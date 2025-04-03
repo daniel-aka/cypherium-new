@@ -119,6 +119,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add event listener for payment method selection
     document.getElementById('paymentMethod').addEventListener('change', updatePaymentDetails);
+
+    // Add logout button event listener
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            logout();
+        });
+    }
 });
 
 // Authentication functions
@@ -137,17 +146,31 @@ function checkAuth() {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error('Authentication failed');
+            // Only redirect if it's an authentication error (401)
+            if (response.status === 401) {
+                localStorage.removeItem('token');
+                window.location.href = '/login.html';
+            } else {
+                console.error('Error fetching user data:', response.status);
+            }
+            return;
         }
         return response.json();
     })
     .then(data => {
-        currentUser = data;
-        updateUserInfo();
+        if (data) {
+            currentUser = data;
+            updateUserInfo();
+        }
     })
     .catch(error => {
         console.error('Error:', error);
-        window.location.href = '/login.html';
+        // Don't automatically logout on network errors
+        // Only logout if it's a clear authentication error
+        if (error.message.includes('401')) {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
     });
 }
 
@@ -319,6 +342,10 @@ function showAlert(message, type = 'success') {
 }
 
 function logout() {
+    // Clear token and user data
     localStorage.removeItem('token');
+    currentUser = null;
+    
+    // Redirect to login page
     window.location.href = '/login.html';
 }
