@@ -1111,37 +1111,69 @@
                     return;
                 }
 
-                const response = await fetch(`${api.baseUrl}/api/users/profile`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
+                // First try to get user data from localStorage
+                const storedUser = JSON.parse(localStorage.getItem('user'));
+                if (storedUser) {
+                    updateUserDisplay(storedUser);
+                }
+
+                // Then try to fetch from server
+                try {
+                    const response = await fetch(`${api.baseUrl}/api/users/profile`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        localStorage.setItem('user', JSON.stringify(data));
+                        updateUserDisplay(data);
                     }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Failed to load user data: ${response.status}`);
-                }
-
-                const data = await response.json();
-                console.log('User data from server:', data);
-                
-                // Update username in dropdown and welcome message
-                const username = data.username || data.email || 'User';
-                document.getElementById('userName').textContent = username;
-                document.getElementById('userFullName').textContent = username;
-
-                // Update wallet balance and other stats
-                if (data.balance !== undefined) {
-                    document.getElementById('walletBalance').textContent = `$${data.balance.toFixed(2)}`;
-                }
-                if (data.totalInvested !== undefined) {
-                    document.getElementById('totalInvestments').textContent = `$${data.totalInvested.toFixed(2)}`;
-                }
-                if (data.totalEarnings !== undefined) {
-                    document.getElementById('totalEarnings').textContent = `$${data.totalEarnings.toFixed(2)}`;
+                } catch (error) {
+                    console.error('Error fetching from server:', error);
+                    // Continue with stored data if available
                 }
             } catch (error) {
-                console.error('Error loading user data:', error);
-                showAlert('Failed to load user data. Please try refreshing the page.', 'danger');
+                console.error('Error in loadUserData:', error);
+                // Don't show alert if we have stored data
+                if (!localStorage.getItem('user')) {
+                    showAlert('Failed to load user data. Please try refreshing the page.', 'danger');
+                }
+            }
+        }
+
+        function updateUserDisplay(userData) {
+            const username = userData.username || userData.email || 'User';
+            document.getElementById('userName').textContent = username;
+            document.getElementById('userFullName').textContent = username;
+
+            if (userData.balance !== undefined) {
+                document.getElementById('walletBalance').textContent = `$${userData.balance.toFixed(2)}`;
+            }
+            if (userData.totalInvested !== undefined) {
+                document.getElementById('totalInvestments').textContent = `$${userData.totalInvested.toFixed(2)}`;
+            }
+            if (userData.totalEarnings !== undefined) {
+                document.getElementById('totalEarnings').textContent = `$${userData.totalEarnings.toFixed(2)}`;
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.createElement('div');
+            alertContainer.className = `alert alert-${type} alert-dismissible fade show mt-3`;
+            alertContainer.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            // Find the first row in the container
+            const container = document.querySelector('.container');
+            const firstRow = container.querySelector('.row');
+            if (firstRow) {
+                container.insertBefore(alertContainer, firstRow);
+            } else {
+                container.appendChild(alertContainer);
             }
         }
 
@@ -1192,16 +1224,6 @@
                 case 'cancelled': return 'danger';
                 default: return 'secondary';
             }
-        }
-
-        function showAlert(message, type) {
-            const alertContainer = document.createElement('div');
-            alertContainer.className = `alert alert-${type} alert-dismissible fade show mt-3`;
-            alertContainer.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            document.querySelector('.container').insertBefore(alertContainer, document.querySelector('.row'));
         }
 
         // Initialize modals
@@ -1385,6 +1407,12 @@
             const amountInput = document.getElementById('investmentAmount');
             const amount = parseFloat(amountInput.value) || 0;
             
+            if (!planSelect.value) {
+                document.getElementById('dailyProfit').textContent = '$0.00';
+                document.getElementById('totalProfit').textContent = '$0.00';
+                return;
+            }
+            
             let dailyRate, totalRate;
             switch(planSelect.value) {
                 case 'Gold Plan':
@@ -1468,6 +1496,9 @@
             document.getElementById('investmentDetails').value = investmentDetails;
 
             // Close the investment modal and show the instructions modal
+            const newInvestmentModal = bootstrap.Modal.getInstance(document.getElementById('newInvestmentModal'));
+            const investmentInstructionsModal = new bootstrap.Modal(document.getElementById('investmentInstructionsModal'));
+            
             newInvestmentModal.hide();
             investmentInstructionsModal.show();
         }
@@ -1556,6 +1587,75 @@
             } catch (error) {
                 showAlert(error.message, 'danger');
             }
+        }
+
+        // Add event listeners for real-time profit calculation
+        document.addEventListener('DOMContentLoaded', () => {
+            const planSelect = document.getElementById('planSelect');
+            const amountInput = document.getElementById('investmentAmount');
+            
+            planSelect.addEventListener('change', () => {
+                updateAmountLimits();
+                calculateProfits();
+            });
+            
+            amountInput.addEventListener('input', () => {
+                validateAmount();
+                calculateProfits();
+            });
+        });
+
+        // Function to submit withdrawal
+        function submitWithdrawal() {
+            const amount = parseFloat(document.getElementById('withdrawAmount').value) || 0;
+            const method = document.getElementById('withdrawMethod').value;
+            const availableBalance = parseFloat(document.getElementById('walletBalance').textContent.replace('$', '')) || 0;
+
+            if (!amount || amount <= 0) {
+                showAlert('Please enter a valid amount', 'danger');
+                return;
+            }
+
+            if (amount > availableBalance) {
+                showAlert('Insufficient balance', 'danger');
+                return;
+            }
+
+            if (!method) {
+                showAlert('Please select a withdrawal method', 'danger');
+                return;
+            }
+
+            // Generate withdrawal details message
+            const withdrawalDetails = `I would like to withdraw $${amount.toFixed(2)} via ${method}.\n\nWithdrawal Details:\n- Amount: $${amount.toFixed(2)}\n- Method: ${method}\n\nPlease process my withdrawal request.`;
+
+            // Set the withdrawal details in the textarea
+            document.getElementById('withdrawalDetails').value = withdrawalDetails;
+
+            // Close the withdrawal modal and show the instructions modal
+            const withdrawModal = bootstrap.Modal.getInstance(document.getElementById('withdrawModal'));
+            const withdrawalInstructionsModal = new bootstrap.Modal(document.getElementById('withdrawalInstructionsModal'));
+            
+            withdrawModal.hide();
+            withdrawalInstructionsModal.show();
+        }
+
+        // Function to copy withdrawal details to clipboard
+        function copyWithdrawalToClipboard() {
+            const textarea = document.getElementById('withdrawalDetails');
+            textarea.select();
+            document.execCommand('copy');
+            
+            // Show success message
+            const button = document.querySelector('#withdrawalInstructionsModal .btn-primary');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="bi bi-check-circle me-2"></i>Copied!';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+            }, 2000);
+
+            // Open Tawk.to chat
+            Tawk_API.maximize();
         }
     </script>
 </body>
