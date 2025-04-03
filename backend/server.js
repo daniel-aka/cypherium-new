@@ -187,16 +187,22 @@ app.use(async (req, res, next) => {
 });
 
 // Import routes
-const adminRoutes = require('./routes/admin');
-const userRoutes = require('./routes/user');
 const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const investmentRoutes = require('./routes/investmentRoutes');
+const adminRoutes = require('./routes/admin');
 const googleAuthRoutes = require('./routes/googleAuth');
+const passwordRoutes = require('./routes/password');
+const verificationRoutes = require('./routes/verification');
 
 // Use routes
-app.use('/api/admin', adminRoutes);
-app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/auth/google', googleAuthRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/investments', investmentRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/google', googleAuthRoutes);
+app.use('/api/password', passwordRoutes);
+app.use('/api/verification', verificationRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

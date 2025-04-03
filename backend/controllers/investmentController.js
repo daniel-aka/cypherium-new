@@ -8,7 +8,7 @@ exports.createInvestment = async (req, res) => {
         const userId = req.user._id;
 
         // Validate plan type
-        if (!['basic', 'premium', 'vip'].includes(planType)) {
+        if (!['Gold Plan', 'Silver Plan', 'Bronze Plan'].includes(planType)) {
             return res.status(400).json({ message: 'Invalid plan type' });
         }
 
