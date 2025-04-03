@@ -723,12 +723,12 @@
     </div>
 
     <!-- Investment Instructions Modal -->
-    <div class="modal fade" id="investmentInstructionsModal" tabindex="-1" aria-labelledby="investmentInstructionsModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+    <div class="modal fade" id="investmentInstructionsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="investmentInstructionsModalLabel">Investment Instructions</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title">Investment Instructions</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="alert alert-info">
@@ -739,75 +739,55 @@
                         <label class="form-label">Investment Details:</label>
                         <textarea class="form-control" id="investmentDetails" rows="8" readonly></textarea>
                     </div>
-                    <div class="text-center mt-3">
-                        <button class="btn btn-primary" onclick="copyToClipboard()">
-                            <i class="bi bi-clipboard me-2"></i>Copy to Clipboard
-                        </button>
-                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="copyToClipboard()">
+                        <i class="bi bi-clipboard me-2"></i>Copy to Clipboard
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Withdrawal Modal -->
-    <div class="modal fade" id="withdrawalModal" tabindex="-1" aria-labelledby="withdrawalModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+    <div class="modal fade" id="withdrawModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="withdrawalModalLabel">Withdraw Funds</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title">Withdraw Funds</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row justify-content-center">
-                        <div class="col-lg-8">
-                            <div class="form-card">
-                                <h3 class="form-title text-center mb-4">Withdraw Your Earnings</h3>
-                                
-                                <div class="row">
-                                    <div class="col-md-6 mb-4">
-                                        <label class="form-label">Available Balance:</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">$</span>
-                                            <input type="text" class="form-control" id="availableBalance" readonly>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="col-md-6 mb-4">
-                                        <label class="form-label">Withdrawal Amount ($):</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">$</span>
-                                            <input type="number" class="form-control" id="withdrawalAmount" min="100" step="1" oninput="validateWithdrawalAmount()">
-                                        </div>
-                                        <div class="form-text" id="withdrawalHelp"></div>
-                                    </div>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-6 mb-4">
-                                        <label class="form-label">Payment Method:</label>
-                                        <select class="form-select" id="paymentMethod" onchange="updatePaymentDetails()">
-                                            <option value="">Select payment method</option>
-                                            <option value="Bitcoin">Bitcoin</option>
-                                            <option value="Ethereum">Ethereum</option>
-                                            <option value="PayPal">PayPal</option>
-                                            <option value="CashApp">Cash App</option>
-                                            <option value="Venmo">Venmo</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="col-md-6 mb-4">
-                                        <label class="form-label">Payment Details:</label>
-                                        <input type="text" class="form-control" id="paymentDetails" placeholder="Enter your payment details">
-                                        <div class="form-text" id="paymentHelp"></div>
-                                    </div>
-                                </div>
-                                
-                                <div class="text-center mt-4">
-                                    <button class="btn btn-invest" id="withdrawButton" onclick="submitWithdrawal()">Withdraw Now <i class="bi bi-arrow-right ms-2"></i></button>
-                                </div>
+                    <form id="withdrawForm">
+                        <div class="mb-3">
+                            <label for="availableBalance" class="form-label">Available Balance</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="text" class="form-control" id="availableBalance" readonly>
                             </div>
                         </div>
-                    </div>
+                        <div class="mb-3">
+                            <label for="withdrawAmount" class="form-label">Amount ($)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="withdrawAmount" required oninput="validateWithdrawalAmount()">
+                            </div>
+                            <div class="form-text text-danger" id="withdrawalHelp"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="withdrawMethod" class="form-label">Withdrawal Method</label>
+                            <select class="form-select" id="withdrawMethod" required>
+                                <option value="">Select withdrawal method</option>
+                                <option value="bank">Bank Transfer</option>
+                                <option value="crypto">Cryptocurrency</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="withdrawButton" onclick="submitWithdrawal()">Withdraw</button>
                 </div>
             </div>
         </div>
@@ -887,125 +867,51 @@
     </div>
 
     <!-- New Investment Modal -->
-    <div class="modal fade" id="newInvestmentModal" tabindex="-1" aria-labelledby="newInvestmentModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+    <div class="modal fade" id="newInvestmentModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="newInvestmentModalLabel">Investment Plans</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title">New Investment</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="section-header text-center mb-4">
-                        <h2 class="section-subtitle">Choose Your Plan</h2>
-                    </div>
-
-                    <div class="row">
-                        <!-- Gold Plan -->
-                        <div class="col-lg-4 mb-4">
-                            <div class="plan-card gold-plan">
-                                <div class="plan-header">
-                                    <h3 class="plan-name">GOLD PLAN</h3>
-                                    <div class="plan-roi">120% ROI</div>
+                    <form id="investmentForm">
+                        <div class="mb-3">
+                            <label for="planSelect" class="form-label">Choose Plan</label>
+                            <select class="form-select" id="planSelect" onchange="updateAmountLimits()">
+                                <option value="">Select a plan</option>
+                                <option value="Gold Plan">Gold Plan ($25,000 - $500,000)</option>
+                                <option value="Silver Plan">Silver Plan ($500 - $24,000)</option>
+                                <option value="Bronze Plan">Bronze Plan ($200 - $12,500)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="investmentAmount" class="form-label">Amount ($)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="investmentAmount" oninput="validateAmount()">
+                            </div>
+                            <div class="form-text text-danger" id="amountHelp"></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="profit-display">
+                                    <p class="profit-label">Daily Profit</p>
+                                    <p class="profit-value" id="dailyProfit">$0.00</p>
                                 </div>
-                                <div class="plan-details">
-                                    <p class="plan-duration"><i class="bi bi-calendar me-2"></i> Daily for 30 Days</p>
-                                    <p class="plan-min"><i class="bi bi-arrow-up me-2"></i> Min. Invest $25,000</p>
-                                    <p class="plan-max"><i class="bi bi-arrow-down me-2"></i> Max. Invest $500,000</p>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="profit-display">
+                                    <p class="profit-label">Total Profit</p>
+                                    <p class="profit-value" id="totalProfit">$0.00</p>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Silver Plan -->
-                        <div class="col-lg-4 mb-4">
-                            <div class="plan-card silver-plan">
-                                <div class="plan-header">
-                                    <h3 class="plan-name">SILVER PLAN</h3>
-                                    <div class="plan-roi">80% ROI</div>
-                                </div>
-                                <div class="plan-details">
-                                    <p class="plan-duration"><i class="bi bi-calendar me-2"></i> Daily for 30 Days</p>
-                                    <p class="plan-min"><i class="bi bi-arrow-up me-2"></i> Min. Invest $500</p>
-                                    <p class="plan-max"><i class="bi bi-arrow-down me-2"></i> Max. Invest $24,000</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Bronze Plan -->
-                        <div class="col-lg-4 mb-4">
-                            <div class="plan-card bronze-plan">
-                                <div class="plan-header">
-                                    <h3 class="plan-name">BRONZE PLAN</h3>
-                                    <div class="plan-roi">50% ROI</div>
-                                </div>
-                                <div class="plan-details">
-                                    <p class="plan-duration"><i class="bi bi-calendar me-2"></i> Daily for 30 Days</p>
-                                    <p class="plan-min"><i class="bi bi-arrow-up me-2"></i> Min. Invest $200</p>
-                                    <p class="plan-max"><i class="bi bi-arrow-down me-2"></i> Max. Invest $12,500</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Investment Form -->
-                    <div class="investment-form mt-4">
-                        <div class="row justify-content-center">
-                            <div class="col-lg-8">
-                                <div class="form-card">
-                                    <h3 class="form-title text-center mb-4">Start Investing</h3>
-                                    
-                                    <div class="row">
-                                        <div class="col-md-6 mb-4">
-                                            <label class="form-label">Choose Plan:</label>
-                                            <select class="form-select plan-select" id="planSelect" onchange="updateAmountLimits()">
-                                                <option value="">Select a plan</option>
-                                                <option value="Gold Plan">Gold Plan ($25,000 - $500,000)</option>
-                                                <option value="Silver Plan">Silver Plan ($500 - $24,000)</option>
-                                                <option value="Bronze Plan">Bronze Plan ($200 - $12,500)</option>
-                                            </select>
-                                        </div>
-                                        
-                                        <div class="col-md-6 mb-4">
-                                            <label class="form-label">Enter Amount ($):</label>
-                                            <input type="number" class="form-control amount-input" id="investmentAmount" min="200" step="1" oninput="validateAmount()">
-                                            <div class="form-text" id="amountHelp"></div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <div class="profit-display">
-                                                <p class="profit-label">Daily Profit</p>
-                                                <p class="profit-value daily-profit" id="dailyProfit">$0.00</p>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="col-md-6 mb-3">
-                                            <div class="profit-display">
-                                                <p class="profit-label">Total Profit</p>
-                                                <p class="profit-value total-profit" id="totalProfit">$0.00</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="text-center mt-4">
-                                        <button class="btn btn-invest" id="investButton" onclick="submitInvestment()">Invest Now <i class="bi bi-arrow-right ms-2"></i></button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Payment Methods -->
-                    <div class="payment-methods mt-4">
-                        <h3 class="text-center mb-4">We Accept Payment Methods</h3>
-                        <div class="d-flex flex-wrap justify-content-center gap-3">
-                            <div class="payment-icon"><i class="bi bi-currency-btc"></i> Bitcoin</div>
-                            <div class="payment-icon"><i class="bi bi-currency-eth"></i> Ethereum</div>
-                            <div class="payment-icon"><i class="bi bi-paypal"></i> Paypal</div>
-                            <div class="payment-icon"><i class="bi bi-cash"></i> Cash App</div>
-                            <div class="payment-icon"><i class="bi bi-wallet2"></i> Venmo</div>
-                        </div>
-                    </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="investButton" onclick="submitInvestment()">Invest Now</button>
                 </div>
             </div>
         </div>
@@ -1039,38 +945,6 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" onclick="submitDeposit()">Deposit</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Withdraw Modal -->
-    <div class="modal fade" id="withdrawModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Withdraw Funds</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="withdrawForm">
-                        <div class="mb-3">
-                            <label for="withdrawAmount" class="form-label">Amount ($)</label>
-                            <input type="number" class="form-control" id="withdrawAmount" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="withdrawMethod" class="form-label">Withdrawal Method</label>
-                            <select class="form-select" id="withdrawMethod" required>
-                                <option value="">Select withdrawal method</option>
-                                <option value="bank">Bank Transfer</option>
-                                <option value="crypto">Cryptocurrency</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="submitWithdraw()">Withdraw</button>
                 </div>
             </div>
         </div>
@@ -1263,24 +1137,22 @@
         // Function to open withdrawal modal
         function openWithdrawalModal() {
             // Set available balance
-            const availableBalance = document.getElementById('walletBalance').textContent.replace('$', '');
+            const availableBalance = document.getElementById('walletBalance').textContent;
             document.getElementById('availableBalance').value = availableBalance;
             
             // Reset form
-            document.getElementById('withdrawalAmount').value = '';
-            document.getElementById('paymentMethod').value = '';
-            document.getElementById('paymentDetails').value = '';
+            document.getElementById('withdrawAmount').value = '';
+            document.getElementById('withdrawMethod').value = '';
             document.getElementById('withdrawalHelp').textContent = '';
-            document.getElementById('paymentHelp').textContent = '';
             document.getElementById('withdrawButton').disabled = true;
             
             // Show modal
-            withdrawalModal.show();
+            withdrawModal.show();
         }
 
         // Function to open balance modal
         function openBalanceModal() {
-            const currentBalance = document.getElementById('walletBalance').textContent.replace('$', '');
+            const currentBalance = document.getElementById('walletBalance').textContent;
             document.getElementById('currentBalance').value = currentBalance;
             document.getElementById('balanceAmount').value = '';
             document.getElementById('balanceHelp').textContent = '';
@@ -1298,11 +1170,9 @@
 
         document.getElementById('withdrawalModal').addEventListener('hidden.bs.modal', function () {
             // Reset form
-            document.getElementById('withdrawalAmount').value = '';
-            document.getElementById('paymentMethod').value = '';
-            document.getElementById('paymentDetails').value = '';
+            document.getElementById('withdrawAmount').value = '';
+            document.getElementById('withdrawMethod').value = '';
             document.getElementById('withdrawalHelp').textContent = '';
-            document.getElementById('paymentHelp').textContent = '';
         });
 
         document.getElementById('balanceModal').addEventListener('hidden.bs.modal', function () {
@@ -1500,7 +1370,9 @@
             const investmentInstructionsModal = new bootstrap.Modal(document.getElementById('investmentInstructionsModal'));
             
             newInvestmentModal.hide();
-            investmentInstructionsModal.show();
+            setTimeout(() => {
+                investmentInstructionsModal.show();
+            }, 300);
         }
 
         // Function to copy text to clipboard
@@ -1594,15 +1466,19 @@
             const planSelect = document.getElementById('planSelect');
             const amountInput = document.getElementById('investmentAmount');
             
-            planSelect.addEventListener('change', () => {
-                updateAmountLimits();
-                calculateProfits();
-            });
+            if (planSelect) {
+                planSelect.addEventListener('change', () => {
+                    updateAmountLimits();
+                    calculateProfits();
+                });
+            }
             
-            amountInput.addEventListener('input', () => {
-                validateAmount();
-                calculateProfits();
-            });
+            if (amountInput) {
+                amountInput.addEventListener('input', () => {
+                    validateAmount();
+                    calculateProfits();
+                });
+            }
         });
 
         // Function to submit withdrawal
@@ -1656,6 +1532,29 @@
 
             // Open Tawk.to chat
             Tawk_API.maximize();
+        }
+
+        // Function to validate withdrawal amount
+        function validateWithdrawalAmount() {
+            const amount = parseFloat(document.getElementById('withdrawAmount').value) || 0;
+            const availableBalance = parseFloat(document.getElementById('availableBalance').value) || 0;
+            const withdrawalHelp = document.getElementById('withdrawalHelp');
+            const withdrawButton = document.getElementById('withdrawButton');
+
+            if (amount <= 0) {
+                withdrawalHelp.textContent = 'Please enter a valid amount';
+                withdrawButton.disabled = true;
+                return;
+            }
+
+            if (amount > availableBalance) {
+                withdrawalHelp.textContent = 'Insufficient balance';
+                withdrawButton.disabled = true;
+                return;
+            }
+
+            withdrawalHelp.textContent = '';
+            withdrawButton.disabled = false;
         }
     </script>
 </body>
