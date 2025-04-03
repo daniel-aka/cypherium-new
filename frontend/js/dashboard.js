@@ -4,65 +4,41 @@ let investmentPlans = [
     {
         id: 'bronze',
         name: 'Bronze Plan',
-        minAmount: 100,
-        maxAmount: 999,
-        duration: 7,
-        dailyReturn: 0.05,
-        totalReturn: 0.35,
+        minAmount: 200,
+        maxAmount: 12500,
+        duration: 30,
+        dailyReturn: 0.0167,
+        totalReturn: 0.5,
         description: 'Perfect for beginners. Low risk, stable returns.'
     },
     {
         id: 'silver',
         name: 'Silver Plan',
-        minAmount: 1000,
-        maxAmount: 4999,
-        duration: 14,
-        dailyReturn: 0.08,
-        totalReturn: 1.12,
+        minAmount: 500,
+        maxAmount: 24000,
+        duration: 30,
+        dailyReturn: 0.0267,
+        totalReturn: 0.8,
         description: 'Balanced risk and reward. Ideal for moderate investors.'
     },
     {
         id: 'gold',
         name: 'Gold Plan',
-        minAmount: 5000,
-        maxAmount: 9999,
-        duration: 21,
-        dailyReturn: 0.12,
-        totalReturn: 2.52,
-        description: 'Higher returns for experienced investors.'
-    },
-    {
-        id: 'platinum',
-        name: 'Platinum Plan',
-        minAmount: 10000,
-        maxAmount: 50000,
+        minAmount: 25000,
+        maxAmount: 500000,
         duration: 30,
-        dailyReturn: 0.15,
-        totalReturn: 4.5,
-        description: 'Maximum returns for serious investors.'
+        dailyReturn: 0.04,
+        totalReturn: 1.2,
+        description: 'Higher returns for experienced investors.'
     }
 ];
 
 // Initialize modals
 const liveChatModal = new bootstrap.Modal(document.getElementById('liveChatModal'));
 const investmentInstructionsModal = new bootstrap.Modal(document.getElementById('investmentInstructionsModal'));
-const withdrawModal = new bootstrap.Modal(document.getElementById('withdrawModal'));
+const withdrawModal = new bootstrap.Modal(document.getElementById('withdrawalModal'));
 const withdrawalInstructionsModal = new bootstrap.Modal(document.getElementById('withdrawalInstructionsModal'));
 const balanceModal = new bootstrap.Modal(document.getElementById('balanceModal'));
-const newInvestmentModal = new bootstrap.Modal(document.getElementById('newInvestmentModal'));
-const depositModal = new bootstrap.Modal(document.getElementById('depositModal'));
-
-// Initialize tooltips
-const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-const tooltips = tooltipTriggerList.map(function (tooltipTriggerEl) {
-    return new bootstrap.Tooltip(tooltipTriggerEl);
-});
-
-// Initialize popovers
-const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-const popovers = popoverTriggerList.map(function (popoverTriggerEl) {
-    return new bootstrap.Popover(popoverTriggerEl);
-});
 
 // Initialize the dashboard
 document.addEventListener('DOMContentLoaded', function() {
@@ -70,29 +46,16 @@ document.addEventListener('DOMContentLoaded', function() {
     checkAuth();
     
     // Add click handlers to action cards
-    document.querySelector('.action-card[data-bs-toggle="modal"][data-bs-target="#newInvestmentModal"]').addEventListener('click', () => {
-        newInvestmentModal.show();
+    document.querySelector('.action-card:nth-child(1)').addEventListener('click', () => {
+        openLiveChat('investment');
     });
 
-    document.querySelector('.action-card[data-bs-toggle="modal"][data-bs-target="#depositModal"]').addEventListener('click', () => {
-        depositModal.show();
+    document.querySelector('.action-card:nth-child(2)').addEventListener('click', () => {
+        openBalanceModal();
     });
 
-    document.querySelector('.action-card[data-bs-toggle="modal"][data-bs-target="#withdrawModal"]').addEventListener('click', () => {
-        // Set available balance
-        const availableBalance = document.getElementById('walletBalance').textContent;
-        document.getElementById('availableBalance').value = availableBalance;
-        
-        // Reset form
-        document.getElementById('withdrawalAmount').value = '';
-        document.getElementById('paymentMethod').value = '';
-        document.getElementById('paymentDetails').value = '';
-        document.getElementById('withdrawalHelp').textContent = '';
-        document.getElementById('paymentHelp').textContent = '';
-        document.getElementById('withdrawButton').disabled = true;
-        
-        // Show modal
-        withdrawModal.show();
+    document.querySelector('.action-card:nth-child(3)').addEventListener('click', () => {
+        openWithdrawalModal();
     });
 
     // Add event listeners for investment plan selection
@@ -105,8 +68,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('minAmount').textContent = `$${plan.minAmount}`;
                 document.getElementById('maxAmount').textContent = `$${plan.maxAmount}`;
                 document.getElementById('duration').textContent = `${plan.duration} days`;
-                document.getElementById('dailyReturn').textContent = `${plan.dailyReturn * 100}%`;
-                document.getElementById('totalReturn').textContent = `${plan.totalReturn * 100}%`;
+                document.getElementById('dailyReturn').textContent = `${(plan.dailyReturn * 100).toFixed(2)}%`;
+                document.getElementById('totalReturn').textContent = `${(plan.totalReturn * 100).toFixed(2)}%`;
             }
         });
     });
@@ -146,49 +109,119 @@ function checkAuth() {
     })
     .then(response => {
         if (!response.ok) {
-            // Only redirect if it's an authentication error (401)
             if (response.status === 401) {
                 localStorage.removeItem('token');
                 window.location.href = '/login.html';
-            } else {
-                console.error('Error fetching user data:', response.status);
             }
-            return;
+            throw new Error('Failed to fetch user data');
         }
         return response.json();
     })
     .then(data => {
-        if (data) {
-            currentUser = data;
-            updateUserInfo();
-        }
+        currentUser = data;
+        updateUserInfo();
+        loadInvestmentHistory();
     })
     .catch(error => {
         console.error('Error:', error);
-        // Don't automatically logout on network errors
-        // Only logout if it's a clear authentication error
-        if (error.message.includes('401')) {
-            localStorage.removeItem('token');
-            window.location.href = '/login.html';
-        }
+        showAlert('Failed to load user data', 'danger');
     });
 }
 
 function updateUserInfo() {
     if (currentUser) {
-        document.getElementById('userName').textContent = currentUser.name;
-        document.getElementById('userEmail').textContent = currentUser.email;
+        document.getElementById('userName').textContent = currentUser.username || 'User';
         document.getElementById('walletBalance').textContent = `$${currentUser.balance.toFixed(2)}`;
-        document.getElementById('totalInvested').textContent = `$${currentUser.totalInvested.toFixed(2)}`;
+        document.getElementById('totalInvestments').textContent = `$${currentUser.totalInvested.toFixed(2)}`;
         document.getElementById('totalEarnings').textContent = `$${currentUser.totalEarnings.toFixed(2)}`;
     }
+}
+
+function loadInvestmentHistory() {
+    const token = localStorage.getItem('token');
+    fetch('/api/investments/history', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Failed to load investment history');
+        return response.json();
+    })
+    .then(investments => {
+        updateInvestmentHistory(investments);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Failed to load investment history', 'danger');
+    });
+}
+
+function updateInvestmentHistory(investments) {
+    const tbody = document.getElementById('investmentHistory');
+    if (!investments || investments.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">No investments yet</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = investments.map(inv => `
+        <tr>
+            <td>${new Date(inv.createdAt).toLocaleDateString()}</td>
+            <td>${inv.planType}</td>
+            <td>$${inv.amount.toFixed(2)}</td>
+            <td>$${inv.dailyReturn.toFixed(2)}</td>
+            <td>$${inv.totalReturn.toFixed(2)}</td>
+            <td><span class="status-badge bg-${getStatusColor(inv.status)}">${inv.status}</span></td>
+        </tr>
+    `).join('');
+}
+
+function getStatusColor(status) {
+    switch (status.toLowerCase()) {
+        case 'active': return 'success';
+        case 'pending': return 'warning';
+        case 'completed': return 'info';
+        case 'cancelled': return 'danger';
+        default: return 'secondary';
+    }
+}
+
+// Modal functions
+function openLiveChat(action) {
+    document.getElementById('investmentPlansSection').style.display = 'block';
+    document.getElementById('chatSection').style.display = 'none';
+    document.getElementById('liveChatModalLabel').textContent = 'Investment Plans';
+    liveChatModal.show();
+}
+
+function openWithdrawalModal() {
+    const availableBalance = document.getElementById('walletBalance').textContent.replace('$', '');
+    document.getElementById('availableBalance').value = availableBalance;
+    
+    document.getElementById('withdrawalAmount').value = '';
+    document.getElementById('paymentMethod').value = '';
+    document.getElementById('paymentDetails').value = '';
+    document.getElementById('withdrawalHelp').textContent = '';
+    document.getElementById('paymentHelp').textContent = '';
+    document.getElementById('withdrawButton').disabled = true;
+    
+    withdrawModal.show();
+}
+
+function openBalanceModal() {
+    const currentBalance = document.getElementById('walletBalance').textContent.replace('$', '');
+    document.getElementById('currentBalance').value = currentBalance;
+    document.getElementById('balanceAmount').value = '';
+    document.getElementById('balanceHelp').textContent = '';
+    document.getElementById('updateBalanceButton').disabled = true;
+    balanceModal.show();
 }
 
 // Investment functions
 function validateInvestmentAmount() {
     const amount = parseFloat(this.value) || 0;
-    const planId = document.getElementById('selectedPlan').value;
-    const plan = investmentPlans.find(p => p.id === planId);
+    const planSelect = document.getElementById('planSelect');
+    const plan = investmentPlans.find(p => p.name === planSelect.value);
     
     if (!plan) {
         document.getElementById('investmentHelp').textContent = 'Please select an investment plan first';
@@ -206,12 +239,29 @@ function validateInvestmentAmount() {
         document.getElementById('investmentHelp').textContent = '';
         document.getElementById('investButton').disabled = false;
     }
+
+    calculateProfits();
+}
+
+function calculateProfits() {
+    const planSelect = document.getElementById('planSelect');
+    const amountInput = document.getElementById('investmentAmount');
+    const amount = parseFloat(amountInput.value) || 0;
+    
+    const plan = investmentPlans.find(p => p.name === planSelect.value);
+    if (!plan) return;
+
+    const dailyProfit = amount * plan.dailyReturn;
+    const totalProfit = amount * plan.totalReturn;
+
+    document.getElementById('dailyProfit').textContent = `$${dailyProfit.toFixed(2)}`;
+    document.getElementById('totalProfit').textContent = `$${totalProfit.toFixed(2)}`;
 }
 
 function submitInvestment() {
     const amount = parseFloat(document.getElementById('investmentAmount').value) || 0;
-    const planId = document.getElementById('selectedPlan').value;
-    const plan = investmentPlans.find(p => p.id === planId);
+    const planSelect = document.getElementById('planSelect');
+    const plan = investmentPlans.find(p => p.name === planSelect.value);
 
     if (!amount || amount <= 0) {
         showAlert('Please enter a valid amount', 'danger');
@@ -228,14 +278,14 @@ function submitInvestment() {
         return;
     }
 
-    // Generate investment details message
-    const investmentDetails = `I would like to invest $${amount.toFixed(2)} in the ${plan.name}.\n\nInvestment Details:\n- Amount: $${amount.toFixed(2)}\n- Plan: ${plan.name}\n- Duration: ${plan.duration} days\n- Daily Return: ${plan.dailyReturn * 100}%\n- Total Return: ${plan.totalReturn * 100}%\n\nPlease process my investment.`;
+    const dailyProfit = amount * plan.dailyReturn;
+    const totalProfit = amount * plan.totalReturn;
 
-    // Set the investment details in the textarea
+    const investmentDetails = `I would like to invest $${amount.toFixed(2)} in the ${plan.name}.\n\nInvestment Details:\n- Amount: $${amount.toFixed(2)}\n- Plan: ${plan.name}\n- Daily Return: $${dailyProfit.toFixed(2)}\n- Total Return: $${totalProfit.toFixed(2)}\n- Duration: ${plan.duration} days\n\nPlease process my investment.`;
+
     document.getElementById('investmentDetails').value = investmentDetails;
 
-    // Close the investment modal and show the instructions modal
-    newInvestmentModal.hide();
+    liveChatModal.hide();
     setTimeout(() => {
         investmentInstructionsModal.show();
     }, 300);
@@ -311,13 +361,10 @@ function submitWithdrawal() {
         return;
     }
 
-    // Generate withdrawal details message
     const withdrawalDetails = `I would like to withdraw $${amount.toFixed(2)} via ${method}.\n\nWithdrawal Details:\n- Amount: $${amount.toFixed(2)}\n- Method: ${method}\n\nPlease process my withdrawal request.`;
 
-    // Set the withdrawal details in the textarea
     document.getElementById('withdrawalDetails').value = withdrawalDetails;
 
-    // Close the withdrawal modal and show the instructions modal
     withdrawModal.hide();
     setTimeout(() => {
         withdrawalInstructionsModal.show();
@@ -342,10 +389,34 @@ function showAlert(message, type = 'success') {
 }
 
 function logout() {
-    // Clear token and user data
     localStorage.removeItem('token');
     currentUser = null;
-    
-    // Redirect to login page
     window.location.href = '/login.html';
+}
+
+// Copy to clipboard functions
+function copyToClipboard() {
+    const textarea = document.getElementById('investmentDetails');
+    textarea.select();
+    document.execCommand('copy');
+    
+    const button = document.querySelector('#investmentInstructionsModal .btn-primary');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="bi bi-check-circle me-2"></i>Copied!';
+    setTimeout(() => {
+        button.innerHTML = originalText;
+    }, 2000);
+}
+
+function copyWithdrawalToClipboard() {
+    const textarea = document.getElementById('withdrawalDetails');
+    textarea.select();
+    document.execCommand('copy');
+    
+    const button = document.querySelector('#withdrawalInstructionsModal .btn-primary');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="bi bi-check-circle me-2"></i>Copied!';
+    setTimeout(() => {
+        button.innerHTML = originalText;
+    }, 2000);
 }
