@@ -1010,6 +1010,7 @@
             // Add logout functionality
             document.getElementById('logoutBtn').addEventListener('click', () => {
                 localStorage.removeItem('token');
+                localStorage.removeItem('userData');
                 window.location.href = 'login.html';
             });
         });
