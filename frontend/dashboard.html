@@ -403,6 +403,14 @@
             border-color: var(--primary-color);
             box-shadow: 0 0 0 0.25rem rgba(10, 36, 99, 0.25);
         }
+
+        .navbar-toggler {
+            border-color: white;
+        }
+
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+        }
     </style>
 </head>
 <body>
@@ -965,8 +973,9 @@
         } else {
             // Load user info
             const user = JSON.parse(localStorage.getItem('user'));
-            document.getElementById('userName').textContent = user.username;
-            document.getElementById('userFullName').textContent = user.fullName || user.username;
+            const username = user.username || user.email || 'User';
+            document.getElementById('userName').textContent = username;
+            document.getElementById('userFullName').textContent = username;
             document.getElementById('walletBalance').textContent = `$${user.balance.toFixed(2)}`;
             document.getElementById('totalInvestments').textContent = `$${user.totalInvested.toFixed(2)}`;
             document.getElementById('totalEarnings').textContent = `$${user.totalEarnings.toFixed(2)}`;
@@ -987,10 +996,11 @@
                 }
 
                 const data = await response.json();
+                const username = data.username || data.email || 'User';
                 
                 // Update username in dropdown
-                document.getElementById('userName').textContent = data.username;
-                document.getElementById('userFullName').textContent = data.fullName || data.username;
+                document.getElementById('userName').textContent = username;
+                document.getElementById('userFullName').textContent = username;
 
                 // Update wallet balance
                 const walletBalanceElement = document.getElementById('walletBalance');
@@ -1306,6 +1316,9 @@
             setTimeout(() => {
                 button.innerHTML = originalText;
             }, 2000);
+
+            // Open Tawk.to chat
+            Tawk_API.maximize();
         }
 
         // Function to update the openLiveChat function
