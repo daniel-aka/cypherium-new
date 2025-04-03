@@ -9,6 +9,7 @@ const healthRoutes = require('./routes/healthRoutes');
 const userRoutes = require('./routes/userRoutes');
 const investmentRoutes = require('./routes/investmentRoutes');
 const googleAuthRoutes = require('./routes/googleAuth');
+const authRoutes = require('./routes/authRoutes');
 
 // Validate required environment variables
 const requiredEnvVars = [
@@ -16,7 +17,8 @@ const requiredEnvVars = [
     'JWT_SECRET',
     'GOOGLE_CLIENT_ID',
     'GOOGLE_CLIENT_SECRET',
-    'GOOGLE_REDIRECT_URI'
+    'GOOGLE_REDIRECT_URI',
+    'GOOGLE_CALLBACK_URL'
 ];
 
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
@@ -42,42 +44,10 @@ app.use((req, res, next) => {
 
 // CORS configuration
 app.use(cors({
-    origin: function(origin, callback) {
-        const allowedOrigins = [
-            'http://localhost:5500',
-            'http://localhost:5003',
-            'https://cypherium2.vercel.app',
-            'https://cypherium1.vercel.app',
-            'https://cypherium.vercel.app',
-            'https://*.vercel.app'
-        ];
-        
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        
-        if (allowedOrigins.indexOf(origin) === -1) {
-            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-            console.error('CORS error:', { origin, msg });
-            return callback(new Error(msg), false);
-        }
-        return callback(null, true);
-    },
+    origin: ['https://cypherium.vercel.app', 'http://localhost:5500'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-        'Content-Type',
-        'Authorization',
-        'Accept',
-        'X-Requested-With',
-        'Origin',
-        'Access-Control-Allow-Origin',
-        'Access-Control-Allow-Headers',
-        'Access-Control-Allow-Methods'
-    ],
-    exposedHeaders: ['Authorization', 'Content-Type', 'Access-Control-Allow-Origin'],
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-    maxAge: 86400 // 24 hours
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Add pre-flight handling
@@ -111,17 +81,31 @@ connectWithRetry();
 app.use('/api', async (req, res, next) => {
     if (!isConnected()) {
         console.log('Database not connected, attempting to reconnect...');
-        await connectWithRetry();
+        try {
+            await connectWithRetry();
+            if (!isConnected()) {
+                return res.status(503).json({
+                    error: 'Database connection is not ready',
+                    message: 'Please try again in a few moments'
+                });
+            }
+        } catch (error) {
+            console.error('Database connection error:', error);
+            return res.status(503).json({
+                error: 'Database connection failed',
+                message: 'Please try again later'
+            });
+        }
     }
     next();
 });
 
 // Routes
 app.use('/api/health', healthRoutes);
-app.use('/api', checkDatabaseConnection); // Apply database check to all API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/auth/google', googleAuthRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/investments', investmentRoutes);
-app.use('/api/auth/google', googleAuthRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -175,7 +159,7 @@ console.log('Server initialization complete');
 module.exports = app;
 
 // Start server
-const PORT = process.env.PORT || 5003;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log('Database connection status:', isConnected() ? 'Connected' : 'Disconnected');

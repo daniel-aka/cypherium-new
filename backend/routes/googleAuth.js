@@ -104,9 +104,13 @@ router.post('/google', async (req, res) => {
         const { credential } = req.body;
         
         if (!credential) {
-            return res.status(400).json({ error: 'No credential provided' });
+            return res.status(400).json({
+                error: 'Missing credential',
+                message: 'Google authentication token is required'
+            });
         }
 
+        // Verify the Google token
         const ticket = await client.verifyIdToken({
             idToken: credential,
             audience: process.env.GOOGLE_CLIENT_ID
@@ -149,10 +153,83 @@ router.post('/google', async (req, res) => {
         });
     } catch (error) {
         console.error('Google auth error:', error);
+        
+        // Handle specific error types
+        if (error.message.includes('Token used too late')) {
+            return res.status(401).json({
+                error: 'Token expired',
+                message: 'Google authentication token has expired'
+            });
+        }
+        
+        if (error.message.includes('Invalid token signature')) {
+            return res.status(401).json({
+                error: 'Invalid token',
+                message: 'Invalid Google authentication token'
+            });
+        }
+
         res.status(500).json({
             error: 'Authentication failed',
-            message: error.message
+            message: 'An error occurred during Google authentication'
         });
+    }
+});
+
+// Google OAuth callback endpoint
+router.get('/callback', async (req, res) => {
+    try {
+        const { code } = req.query;
+        
+        if (!code) {
+            return res.status(400).json({
+                error: 'Missing code',
+                message: 'Authorization code is required'
+            });
+        }
+
+        const { tokens } = await client.getToken({
+            code,
+            client_id: process.env.GOOGLE_CLIENT_ID,
+            client_secret: process.env.GOOGLE_CLIENT_SECRET,
+            redirect_uri: process.env.GOOGLE_REDIRECT_URI
+        });
+
+        const ticket = await client.verifyIdToken({
+            idToken: tokens.id_token,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+
+        const payload = ticket.getPayload();
+        const { email, name, picture } = payload;
+
+        // Check if user exists
+        let user = await User.findOne({ email });
+
+        if (!user) {
+            // Create new user
+            user = new User({
+                email,
+                username: email.split('@')[0],
+                fullName: name,
+                profilePicture: picture,
+                isVerified: true
+            });
+            await user.save();
+        }
+
+        // Generate JWT token
+        const token = jwt.sign(
+            { userId: user._id, email: user.email },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        // Redirect to frontend with token
+        res.redirect(`${process.env.GOOGLE_CALLBACK_URL}?token=${token}`);
+    } catch (error) {
+        console.error('Google callback error:', error);
+        res.redirect(`${process.env.GOOGLE_CALLBACK_URL}?error=${encodeURIComponent(error.message)}`);
     }
 });
 
