@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Add event listener for investment amount input
-    document.getElementById('investmentAmount').addEventListener('input', validateInvestmentAmount);
+    document.getElementById('investmentAmount').addEventListener('input', validateAmount);
 
     // Add event listener for withdrawal amount input
     document.getElementById('withdrawalAmount').addEventListener('input', validateWithdrawalAmount);
@@ -218,26 +218,36 @@ function openBalanceModal() {
 }
 
 // Investment functions
-function validateInvestmentAmount() {
-    const amount = parseFloat(this.value) || 0;
+function validateAmount() {
     const planSelect = document.getElementById('planSelect');
-    const plan = investmentPlans.find(p => p.name === planSelect.value);
-    
-    if (!plan) {
-        document.getElementById('investmentHelp').textContent = 'Please select an investment plan first';
-        document.getElementById('investButton').disabled = true;
+    const amountInput = document.getElementById('investmentAmount');
+    const amountHelp = document.getElementById('amountHelp');
+    const investButton = document.getElementById('investButton');
+
+    if (!planSelect.value) {
+        amountHelp.textContent = 'Please select a plan first';
+        investButton.disabled = true;
         return;
     }
 
+    const plan = investmentPlans.find(p => p.name === planSelect.value);
+    if (!plan) {
+        amountHelp.textContent = 'Please select a valid plan';
+        investButton.disabled = true;
+        return;
+    }
+
+    const amount = parseFloat(amountInput.value) || 0;
+
     if (amount < plan.minAmount) {
-        document.getElementById('investmentHelp').textContent = `Minimum investment is $${plan.minAmount}`;
-        document.getElementById('investButton').disabled = true;
+        amountHelp.textContent = `Minimum amount is $${plan.minAmount}`;
+        investButton.disabled = true;
     } else if (amount > plan.maxAmount) {
-        document.getElementById('investmentHelp').textContent = `Maximum investment is $${plan.maxAmount}`;
-        document.getElementById('investButton').disabled = true;
+        amountHelp.textContent = `Maximum amount is $${plan.maxAmount}`;
+        investButton.disabled = true;
     } else {
-        document.getElementById('investmentHelp').textContent = '';
-        document.getElementById('investButton').disabled = false;
+        amountHelp.textContent = '';
+        investButton.disabled = false;
     }
 
     calculateProfits();
@@ -419,4 +429,32 @@ function copyWithdrawalToClipboard() {
     setTimeout(() => {
         button.innerHTML = originalText;
     }, 2000);
+}
+
+// Function to update amount limits based on selected plan
+function updateAmountLimits() {
+    const planSelect = document.getElementById('planSelect');
+    const amountInput = document.getElementById('investmentAmount');
+    const amountHelp = document.getElementById('amountHelp');
+    const investButton = document.getElementById('investButton');
+
+    if (!planSelect.value) {
+        amountInput.disabled = true;
+        amountInput.value = '';
+        amountHelp.textContent = 'Please select a plan first';
+        investButton.disabled = true;
+        return;
+    }
+
+    amountInput.disabled = false;
+    investButton.disabled = false;
+
+    const plan = investmentPlans.find(p => p.name === planSelect.value);
+    if (plan) {
+        amountInput.min = plan.minAmount;
+        amountInput.max = plan.maxAmount;
+        amountHelp.textContent = `Enter amount between $${plan.minAmount} and $${plan.maxAmount}`;
+    }
+
+    validateAmount();
 }
