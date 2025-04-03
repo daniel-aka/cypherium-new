@@ -321,6 +321,78 @@
             margin-right: 0.5rem;
             color: var(--primary-color);
         }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            .welcome-section {
+                padding: 1.5rem;
+            }
+
+            .welcome-title {
+                font-size: 1.5rem;
+            }
+
+            .balance-info {
+                text-align: left;
+                margin-top: 1rem;
+            }
+
+            .balance-title {
+                font-size: 1rem;
+            }
+
+            .balance-amount {
+                font-size: 2rem;
+            }
+
+            .table-responsive {
+                overflow-x: auto;
+            }
+
+            .table th, .table td {
+                white-space: nowrap;
+                min-width: 100px;
+            }
+
+            /* Hide columns on mobile */
+            .table th:nth-child(2),
+            .table td:nth-child(2),
+            .table th:nth-child(4),
+            .table td:nth-child(4) {
+                display: none;
+            }
+        }
+
+        /* Dropdown menu styles */
+        .dropdown-menu {
+            background-color: var(--primary-color);
+            border: none;
+        }
+
+        .dropdown-item {
+            color: white !important;
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--secondary-color) !important;
+        }
+
+        .dropdown-item.text-danger {
+            color: #ff6b6b !important;
+        }
+
+        .dropdown-item.text-danger:hover {
+            background-color: rgba(255, 107, 107, 0.1) !important;
+        }
+
+        /* Hamburger menu color */
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255, 255, 255, 0.9)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+        }
+
+        .navbar-toggler {
+            border-color: rgba(255, 255, 255, 0.9);
+        }
     </style>
 </head>
 <body>
@@ -451,9 +523,9 @@
                         <thead>
                             <tr>
                                 <th>Date</th>
-                                <th>Plan</th>
+                                <th class="d-none d-md-table-cell">Plan</th>
                                 <th>Amount</th>
-                                <th>Daily Return</th>
+                                <th class="d-none d-md-table-cell">Daily Return</th>
                                 <th>Total Return</th>
                                 <th>Status</th>
                             </tr>
@@ -783,6 +855,9 @@
         })();
     </script>
     <script>
+        // API Configuration
+        const API_BASE_URL = 'https://cypherium.vercel.app'; // Update this to your actual backend URL
+
         // Check authentication
         document.addEventListener('DOMContentLoaded', function() {
             const token = localStorage.getItem('token');
@@ -793,10 +868,12 @@
                 return;
             }
 
-            // Update username in dropdown
+            // Update username in both dropdown and welcome message
             const userNameElement = document.getElementById('userName');
-            if (userNameElement && user.username) {
+            const welcomeUsernameElement = document.getElementById('welcomeUsername');
+            if (userNameElement && welcomeUsernameElement && user.username) {
                 userNameElement.textContent = user.username;
+                welcomeUsernameElement.textContent = user.username;
             }
 
             // Load user data
@@ -819,14 +896,6 @@
 
                 const data = await response.json();
                 
-                // Update username in dropdown and welcome message
-                const userNameElement = document.getElementById('userName');
-                const welcomeUsernameElement = document.getElementById('welcomeUsername');
-                if (userNameElement && data.username) {
-                    userNameElement.textContent = data.username;
-                    welcomeUsernameElement.textContent = data.username;
-                }
-
                 // Update wallet balance
                 const walletBalanceElements = document.querySelectorAll('#walletBalance');
                 walletBalanceElements.forEach(element => {
@@ -916,9 +985,9 @@
             tbody.innerHTML = investments.map(inv => `
                 <tr>
                     <td>${new Date(inv.createdAt).toLocaleDateString()}</td>
-                    <td>${inv.planType.charAt(0).toUpperCase() + inv.planType.slice(1)}</td>
+                    <td class="d-none d-md-table-cell">${inv.planType.charAt(0).toUpperCase() + inv.planType.slice(1)}</td>
                     <td>$${inv.amount.toFixed(2)}</td>
-                    <td>$${inv.dailyReturn.toFixed(2)}</td>
+                    <td class="d-none d-md-table-cell">$${inv.dailyReturn.toFixed(2)}</td>
                     <td>$${inv.totalReturn.toFixed(2)}</td>
                     <td><span class="status-badge bg-${getStatusColor(inv.status)}">${inv.status}</span></td>
                 </tr>

@@ -110,7 +110,7 @@ router.post('/', async (req, res) => {
         });
         
         const { credential } = req.body;
-        
+
         if (!credential) {
             console.error('No credential provided');
             return res.status(400).json({ error: 'No credential provided' });
@@ -169,7 +169,7 @@ router.post('/', async (req, res) => {
         }
 
         const user = await handleUserAuth(payload);
-        
+
         // Generate JWT token
         const token = jwt.sign(
             { 
