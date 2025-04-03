@@ -793,44 +793,89 @@
 
     <!-- Balance Management Modal -->
     <div class="modal fade" id="balanceModal" tabindex="-1" aria-labelledby="balanceModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="balanceModalLabel">Manage Balance</h5>
+                    <h5 class="modal-title" id="balanceModalLabel">Deposit Funds</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="form-card">
-                        <h3 class="form-title text-center mb-4">Update Balance</h3>
-                        
-                        <div class="mb-4">
-                            <label class="form-label">Current Balance:</label>
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="text" class="form-control" id="currentBalance" readonly>
+                    <div class="row justify-content-center">
+                        <div class="col-lg-8">
+                            <div class="form-card">
+                                <h3 class="form-title text-center mb-4">Add Funds to Your Wallet</h3>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-4">
+                                        <label class="form-label">Current Balance:</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input type="text" class="form-control" id="currentBalance" readonly>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-4">
+                                        <label class="form-label">Deposit Amount ($):</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input type="number" class="form-control" id="depositAmount" min="100" step="1" oninput="validateDepositAmount()">
+                                        </div>
+                                        <div class="form-text" id="depositHelp"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-4">
+                                        <label class="form-label">Payment Method:</label>
+                                        <select class="form-select" id="depositPaymentMethod" onchange="updateDepositPaymentDetails()">
+                                            <option value="">Select payment method</option>
+                                            <option value="Bitcoin">Bitcoin</option>
+                                            <option value="Ethereum">Ethereum</option>
+                                            <option value="PayPal">PayPal</option>
+                                            <option value="CashApp">Cash App</option>
+                                            <option value="Venmo">Venmo</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-4">
+                                        <label class="form-label">Payment Details:</label>
+                                        <input type="text" class="form-control" id="depositPaymentDetails" placeholder="Enter your payment details">
+                                        <div class="form-text" id="depositPaymentHelp"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center mt-4">
+                                    <button class="btn btn-invest" id="depositButton" onclick="submitDeposit()">Deposit Now <i class="bi bi-arrow-right ms-2"></i></button>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div class="mb-4">
-                            <label class="form-label">Operation:</label>
-                            <select class="form-select" id="balanceOperation" onchange="updateAmountLabel()">
-                                <option value="add">Add Funds</option>
-                                <option value="subtract">Subtract Funds</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-4">
-                            <label class="form-label" id="amountLabel">Amount to Add ($):</label>
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="number" class="form-control" id="balanceAmount" min="0" step="0.01" oninput="validateBalanceAmount()">
-                            </div>
-                            <div class="form-text" id="balanceHelp"></div>
-                        </div>
-                        
-                        <div class="text-center mt-4">
-                            <button class="btn btn-invest" id="updateBalanceButton" onclick="updateBalance()">Update Balance <i class="bi bi-arrow-right ms-2"></i></button>
-                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deposit Instructions Modal -->
+    <div class="modal fade" id="depositInstructionsModal" tabindex="-1" aria-labelledby="depositInstructionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="depositInstructionsModalLabel">Deposit Instructions</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Please copy the deposit details below and paste them into the live chat.
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Deposit Details:</label>
+                        <textarea class="form-control" id="depositDetails" rows="8" readonly></textarea>
+                    </div>
+                    <div class="text-center mt-3">
+                        <button class="btn btn-primary" onclick="copyDepositToClipboard()">
+                            <i class="bi bi-clipboard me-2"></i>Copy to Clipboard
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1377,79 +1422,115 @@
         function openBalanceModal() {
             const currentBalance = document.getElementById('walletBalance').textContent.replace('$', '');
             document.getElementById('currentBalance').value = currentBalance;
-            document.getElementById('balanceAmount').value = '';
-            document.getElementById('balanceHelp').textContent = '';
-            document.getElementById('updateBalanceButton').disabled = true;
+            document.getElementById('depositAmount').value = '';
+            document.getElementById('depositPaymentMethod').value = '';
+            document.getElementById('depositPaymentDetails').value = '';
+            document.getElementById('depositHelp').textContent = '';
+            document.getElementById('depositPaymentHelp').textContent = '';
+            document.getElementById('depositButton').disabled = true;
             balanceModal.show();
         }
 
-        // Function to update amount label based on operation
-        function updateAmountLabel() {
-            const operation = document.getElementById('balanceOperation').value;
-            const label = document.getElementById('amountLabel');
-            label.textContent = operation === 'add' ? 'Amount to Add ($):' : 'Amount to Subtract ($):';
-            validateBalanceAmount();
-        }
+        // Function to validate deposit amount
+        function validateDepositAmount() {
+            const amount = parseFloat(document.getElementById('depositAmount').value) || 0;
+            const depositHelp = document.getElementById('depositHelp');
+            const depositButton = document.getElementById('depositButton');
 
-        // Function to validate balance amount
-        function validateBalanceAmount() {
-            const operation = document.getElementById('balanceOperation').value;
-            const currentBalance = parseFloat(document.getElementById('currentBalance').value) || 0;
-            const amount = parseFloat(document.getElementById('balanceAmount').value) || 0;
-            const balanceHelp = document.getElementById('balanceHelp');
-            const updateButton = document.getElementById('updateBalanceButton');
-
-            if (amount <= 0) {
-                balanceHelp.textContent = 'Please enter a valid amount';
-                updateButton.disabled = true;
-                return;
-            }
-
-            if (operation === 'subtract' && amount > currentBalance) {
-                balanceHelp.textContent = 'Insufficient balance';
-                updateButton.disabled = true;
-                return;
-            }
-
-            balanceHelp.textContent = '';
-            updateButton.disabled = false;
-        }
-
-        // Function to update balance
-        async function updateBalance() {
-            const operation = document.getElementById('balanceOperation').value;
-            const amount = parseFloat(document.getElementById('balanceAmount').value) || 0;
-
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch('/api/user/update-balance', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ amount, type: operation })
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.message || 'Failed to update balance');
+            if (amount < 100) {
+                depositHelp.textContent = 'Minimum deposit amount is $100';
+                depositButton.disabled = true;
+            } else {
+                depositHelp.textContent = '';
+                if (document.getElementById('depositPaymentMethod').value && document.getElementById('depositPaymentDetails').value) {
+                    depositButton.disabled = false;
                 }
-
-                const data = await response.json();
-                
-                // Update the displayed balance
-                document.getElementById('walletBalance').textContent = `$${data.newBalance.toFixed(2)}`;
-                
-                // Close the modal
-                balanceModal.hide();
-                
-                // Show success message
-                showAlert(`Balance ${operation === 'add' ? 'added' : 'subtracted'} successfully`, 'success');
-            } catch (error) {
-                showAlert(error.message, 'danger');
             }
         }
+
+        // Function to update deposit payment details
+        function updateDepositPaymentDetails() {
+            const paymentMethod = document.getElementById('depositPaymentMethod').value;
+            const paymentDetails = document.getElementById('depositPaymentDetails');
+            const paymentHelp = document.getElementById('depositPaymentHelp');
+            const depositButton = document.getElementById('depositButton');
+
+            paymentDetails.value = '';
+            paymentHelp.textContent = '';
+
+            switch(paymentMethod) {
+                case 'Bitcoin':
+                    paymentHelp.textContent = 'Enter your Bitcoin wallet address';
+                    break;
+                case 'Ethereum':
+                    paymentHelp.textContent = 'Enter your Ethereum wallet address';
+                    break;
+                case 'PayPal':
+                    paymentHelp.textContent = 'Enter your PayPal email address';
+                    break;
+                case 'CashApp':
+                    paymentHelp.textContent = 'Enter your Cash App username';
+                    break;
+                case 'Venmo':
+                    paymentHelp.textContent = 'Enter your Venmo username';
+                    break;
+            }
+
+            if (paymentMethod && paymentDetails.value && !document.getElementById('depositHelp').textContent) {
+                depositButton.disabled = false;
+            }
+        }
+
+        // Function to submit deposit
+        function submitDeposit() {
+            const amount = parseFloat(document.getElementById('depositAmount').value) || 0;
+            const paymentMethod = document.getElementById('depositPaymentMethod').value;
+            const paymentDetails = document.getElementById('depositPaymentDetails').value;
+
+            if (!amount || amount < 100) {
+                showAlert('Please enter a valid deposit amount (minimum $100)', 'danger');
+                return;
+            }
+
+            if (!paymentMethod || !paymentDetails) {
+                showAlert('Please provide payment method and details', 'danger');
+                return;
+            }
+
+            // Generate deposit details message
+            const depositDetails = `I would like to deposit $${amount.toFixed(2)}.\n\nDeposit Details:\n- Amount: $${amount.toFixed(2)}\n- Payment Method: ${paymentMethod}\n- Payment Details: ${paymentDetails}\n\nPlease provide payment instructions.`;
+
+            // Set the deposit details in the textarea
+            document.getElementById('depositDetails').value = depositDetails;
+
+            // Close the deposit modal and show the instructions modal
+            balanceModal.hide();
+            const depositInstructionsModal = new bootstrap.Modal(document.getElementById('depositInstructionsModal'));
+            depositInstructionsModal.show();
+        }
+
+        // Function to copy deposit details to clipboard
+        function copyDepositToClipboard() {
+            const textarea = document.getElementById('depositDetails');
+            textarea.select();
+            document.execCommand('copy');
+            
+            // Show success message
+            const button = document.querySelector('#depositInstructionsModal .btn-primary');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="bi bi-check-circle me-2"></i>Copied!';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+            }, 2000);
+        }
+
+        // Update username in welcome message when dropdown changes
+        document.getElementById('userName').addEventListener('DOMSubtreeModified', function() {
+            const welcomeUsernameElement = document.getElementById('welcomeUsername');
+            if (welcomeUsernameElement) {
+                welcomeUsernameElement.textContent = this.textContent;
+            }
+        });
     </script>
 </body>
 </html>
