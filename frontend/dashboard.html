@@ -1172,18 +1172,89 @@
         const withdrawalModal = new bootstrap.Modal(document.getElementById('withdrawalModal'));
         const withdrawalInstructionsModal = new bootstrap.Modal(document.getElementById('withdrawalInstructionsModal'));
         const balanceModal = new bootstrap.Modal(document.getElementById('balanceModal'));
+        const newInvestmentModal = new bootstrap.Modal(document.getElementById('newInvestmentModal'));
+        const depositModal = new bootstrap.Modal(document.getElementById('depositModal'));
+        const withdrawModal = new bootstrap.Modal(document.getElementById('withdrawModal'));
 
         // Add click handlers to the action cards
-        document.querySelector('.action-card:nth-child(1)').addEventListener('click', () => {
-            openLiveChat('investment');
+        document.querySelector('.action-card[data-bs-toggle="modal"][data-bs-target="#newInvestmentModal"]').addEventListener('click', () => {
+            newInvestmentModal.show();
         });
 
-        document.querySelector('.action-card:nth-child(2)').addEventListener('click', () => {
-            openBalanceModal();
+        document.querySelector('.action-card[data-bs-toggle="modal"][data-bs-target="#depositModal"]').addEventListener('click', () => {
+            depositModal.show();
         });
 
-        document.querySelector('.action-card:nth-child(3)').addEventListener('click', () => {
-            openWithdrawalModal();
+        document.querySelector('.action-card[data-bs-toggle="modal"][data-bs-target="#withdrawModal"]').addEventListener('click', () => {
+            withdrawModal.show();
+        });
+
+        // Function to open live chat modal
+        function openLiveChat(action) {
+            // Reset modal state
+            document.getElementById('investmentPlansSection').style.display = 'block';
+            document.getElementById('chatSection').style.display = 'none';
+            document.getElementById('liveChatModalLabel').textContent = 'Investment Plans';
+
+            // Show the modal
+            liveChatModal.show();
+        }
+
+        // Function to open withdrawal modal
+        function openWithdrawalModal() {
+            // Set available balance
+            const availableBalance = document.getElementById('walletBalance').textContent.replace('$', '');
+            document.getElementById('availableBalance').value = availableBalance;
+            
+            // Reset form
+            document.getElementById('withdrawalAmount').value = '';
+            document.getElementById('paymentMethod').value = '';
+            document.getElementById('paymentDetails').value = '';
+            document.getElementById('withdrawalHelp').textContent = '';
+            document.getElementById('paymentHelp').textContent = '';
+            document.getElementById('withdrawButton').disabled = true;
+            
+            // Show modal
+            withdrawalModal.show();
+        }
+
+        // Function to open balance modal
+        function openBalanceModal() {
+            const currentBalance = document.getElementById('walletBalance').textContent.replace('$', '');
+            document.getElementById('currentBalance').value = currentBalance;
+            document.getElementById('balanceAmount').value = '';
+            document.getElementById('balanceHelp').textContent = '';
+            document.getElementById('updateBalanceButton').disabled = true;
+            balanceModal.show();
+        }
+
+        // Add event listeners for modal close
+        document.getElementById('liveChatModal').addEventListener('hidden.bs.modal', function () {
+            // Reset modal state
+            document.getElementById('investmentPlansSection').style.display = 'block';
+            document.getElementById('chatSection').style.display = 'none';
+            document.getElementById('liveChatModalLabel').textContent = 'Investment Plans';
+        });
+
+        document.getElementById('withdrawalModal').addEventListener('hidden.bs.modal', function () {
+            // Reset form
+            document.getElementById('withdrawalAmount').value = '';
+            document.getElementById('paymentMethod').value = '';
+            document.getElementById('paymentDetails').value = '';
+            document.getElementById('withdrawalHelp').textContent = '';
+            document.getElementById('paymentHelp').textContent = '';
+        });
+
+        document.getElementById('balanceModal').addEventListener('hidden.bs.modal', function () {
+            // Reset form
+            document.getElementById('balanceAmount').value = '';
+            document.getElementById('balanceHelp').textContent = '';
+        });
+
+        // Initialize form state
+        document.addEventListener('DOMContentLoaded', () => {
+            updateAmountLimits();
+            validateAmount();
         });
 
         // Function to submit investment
@@ -1292,24 +1363,6 @@
             updateAmountLimits();
         });
 
-        // Function to open withdrawal modal
-        function openWithdrawalModal() {
-            // Set available balance
-            const availableBalance = document.getElementById('walletBalance').textContent.replace('$', '');
-            document.getElementById('availableBalance').value = availableBalance;
-            
-            // Reset form
-            document.getElementById('withdrawalAmount').value = '';
-            document.getElementById('paymentMethod').value = '';
-            document.getElementById('paymentDetails').value = '';
-            document.getElementById('withdrawalHelp').textContent = '';
-            document.getElementById('paymentHelp').textContent = '';
-            document.getElementById('withdrawButton').disabled = true;
-            
-            // Show modal
-            withdrawalModal.show();
-        }
-
         // Function to validate withdrawal amount
         function validateWithdrawalAmount() {
             const availableBalance = parseFloat(document.getElementById('availableBalance').value) || 0;
@@ -1410,16 +1463,6 @@
         document.querySelector('.action-card:nth-child(2)').addEventListener('click', () => {
             openBalanceModal();
         });
-
-        // Function to open balance modal
-        function openBalanceModal() {
-            const currentBalance = document.getElementById('walletBalance').textContent.replace('$', '');
-            document.getElementById('currentBalance').value = currentBalance;
-            document.getElementById('balanceAmount').value = '';
-            document.getElementById('balanceHelp').textContent = '';
-            document.getElementById('updateBalanceButton').disabled = true;
-            balanceModal.show();
-        }
 
         // Function to update amount label based on operation
         function updateAmountLabel() {
