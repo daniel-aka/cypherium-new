@@ -104,7 +104,7 @@ const connectDB = async () => {
         // Check if already connected
         if (mongoose.connection.readyState === 1) {
             console.log('MongoDB already connected');
-            return;
+            return true;
         }
 
         console.log('Attempting to connect to MongoDB...');
@@ -114,16 +114,15 @@ const connectDB = async () => {
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 10000,
-            socketTimeoutMS: 10000,
-            maxPoolSize: 5,
-            minPoolSize: 1,
+            serverSelectionTimeoutMS: 5000, // Reduced from 10000
+            socketTimeoutMS: 5000, // Reduced from 10000
+            maxPoolSize: 10, // Increased from 5
+            minPoolSize: 5, // Increased from 1
             retryWrites: true,
             retryReads: true,
-            connectTimeoutMS: 10000,
-            heartbeatFrequencyMS: 2000,
-            maxIdleTimeMS: 10000,
-            // Add these options for better serverless support
+            connectTimeoutMS: 5000, // Reduced from 10000
+            heartbeatFrequencyMS: 1000, // Reduced from 2000
+            maxIdleTimeMS: 5000, // Reduced from 10000
             keepAlive: true,
             keepAliveInitialDelay: 300000,
             autoIndex: false,
@@ -142,18 +141,7 @@ const connectDB = async () => {
             minPoolSize: conn.connection.minPoolSize
         });
 
-        // Handle connection events
-        mongoose.connection.on('error', (err) => {
-            console.error('MongoDB connection error:', err);
-        });
-
-        mongoose.connection.on('disconnected', () => {
-            console.log('MongoDB disconnected');
-        });
-
-        mongoose.connection.on('reconnected', () => {
-            console.log('MongoDB reconnected');
-        });
+        return true;
     } catch (error) {
         console.error('MongoDB Connection Error:', {
             message: error.message,
@@ -161,10 +149,7 @@ const connectDB = async () => {
             code: error.code,
             stack: error.stack
         });
-        // Don't exit in production, just log the error
-        if (process.env.NODE_ENV !== 'production') {
-            process.exit(1);
-        }
+        return false;
     }
 };
 
@@ -180,9 +165,19 @@ app.use(async (req, res, next) => {
         // Try to reconnect if not connected
         if (mongoose.connection.readyState === 0) {
             try {
-                await connectDB();
+                const connected = await connectDB();
+                if (!connected) {
+                    return res.status(503).json({ 
+                        error: 'Database error',
+                        details: 'Failed to connect to database'
+                    });
+                }
             } catch (error) {
                 console.error('Failed to reconnect to MongoDB:', error);
+                return res.status(503).json({ 
+                    error: 'Database error',
+                    details: 'Failed to connect to database'
+                });
             }
         }
     }

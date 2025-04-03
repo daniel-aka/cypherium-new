@@ -138,15 +138,15 @@ router.post('/', async (req, res) => {
                 await mongoose.connect(process.env.MONGODB_URI, {
                     useNewUrlParser: true,
                     useUnifiedTopology: true,
-                    serverSelectionTimeoutMS: 10000,
-                    socketTimeoutMS: 10000,
+                    serverSelectionTimeoutMS: 5000,
+                    socketTimeoutMS: 5000,
                     keepAlive: true,
                     keepAliveInitialDelay: 300000
                 });
                 console.log('MongoDB reconnected successfully');
             } catch (error) {
                 console.error('Failed to reconnect to MongoDB:', error);
-                return res.status(500).json({ 
+                return res.status(503).json({ 
                     error: 'Database error',
                     details: 'Failed to connect to database'
                 });
@@ -208,13 +208,13 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: error.message });
         }
         if (error.name === 'MongoError' || error.name === 'MongoServerError') {
-            return res.status(500).json({ 
+            return res.status(503).json({ 
                 error: 'Database error',
                 details: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
         }
         if (error.message.includes('Database connection is not ready')) {
-            return res.status(500).json({ 
+            return res.status(503).json({ 
                 error: 'Database error',
                 details: 'Database connection is not ready'
             });
