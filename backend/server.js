@@ -114,15 +114,15 @@ const connectDB = async () => {
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000, // Reduced from 10000
-            socketTimeoutMS: 5000, // Reduced from 10000
-            maxPoolSize: 10, // Increased from 5
-            minPoolSize: 5, // Increased from 1
+            serverSelectionTimeoutMS: 3000, // Reduced timeout
+            socketTimeoutMS: 3000, // Reduced timeout
+            maxPoolSize: 10,
+            minPoolSize: 5,
             retryWrites: true,
             retryReads: true,
-            connectTimeoutMS: 5000, // Reduced from 10000
-            heartbeatFrequencyMS: 1000, // Reduced from 2000
-            maxIdleTimeMS: 5000, // Reduced from 10000
+            connectTimeoutMS: 3000, // Reduced timeout
+            heartbeatFrequencyMS: 1000,
+            maxIdleTimeMS: 3000, // Reduced timeout
             keepAlive: true,
             keepAliveInitialDelay: 300000,
             autoIndex: false,
@@ -169,14 +169,16 @@ app.use(async (req, res, next) => {
                 if (!connected) {
                     return res.status(503).json({ 
                         error: 'Database error',
-                        details: 'Failed to connect to database'
+                        details: 'Failed to connect to database',
+                        retry: true
                     });
                 }
             } catch (error) {
                 console.error('Failed to reconnect to MongoDB:', error);
                 return res.status(503).json({ 
                     error: 'Database error',
-                    details: 'Failed to connect to database'
+                    details: 'Failed to connect to database',
+                    retry: true
                 });
             }
         }
