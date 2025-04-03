@@ -167,17 +167,16 @@
         // Wait for Google Sign-In script to load
         function initializeGoogleSignIn() {
             console.log('Initializing Google Sign-In...');
+            console.log('Config check:', typeof config, config);
             
             if (typeof google !== 'undefined' && config && config.googleClientId) {
                 console.log('Setting up Google Sign-In with client ID:', config.googleClientId);
-                
                 // Set Google client ID
                 const gIdOnload = document.getElementById('g_id_onload');
-                if (gIdOnload) {
-                    gIdOnload.setAttribute('data-client_id', config.googleClientId);
-                }
+                gIdOnload.setAttribute('data-client_id', config.googleClientId);
             } else {
                 console.log('Google or config not ready, retrying...');
+                // Retry after a short delay
                 setTimeout(initializeGoogleSignIn, 100);
             }
         }
@@ -191,57 +190,70 @@
 
         // Handle Google Sign In
         async function handleGoogleSignIn(response) {
-            const googleSignInBtn = document.querySelector('.g_id_signin');
-            const originalContent = googleSignInBtn.innerHTML;
-            
             try {
-                console.log('Google sign-in response received');
-                
-                // Show loading state
-                googleSignInBtn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Signing in...';
-                googleSignInBtn.disabled = true;
+                console.log('Google Sign-In response:', response);
+                const credential = response.credential;
+                console.log('Google credential:', credential);
 
-                // Try to authenticate with Google
-                const authResponse = await fetch('https://cypherium.vercel.app/api/auth/google', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        credential: response.credential
-                    })
-                });
+                let retries = 3;
+                let lastError = null;
 
-                const data = await authResponse.json();
+                while (retries > 0) {
+                    try {
+                        const apiResponse = await fetch('https://cypherium.vercel.app/api/auth/google', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ credential }),
+                            credentials: 'include'
+                        });
 
-                if (!authResponse.ok) {
-                    throw new Error(data.error || 'Authentication failed');
+                        const data = await apiResponse.json();
+                        console.log('Authentication response:', data);
+
+                        if (!apiResponse.ok) {
+                            if (data.retry && retries > 1) {
+                                console.log(`Retrying... (${retries - 1} attempts remaining)`);
+                                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+                                retries--;
+                                lastError = data.error;
+                                continue;
+                            }
+                            throw new Error(data.error || 'Authentication failed');
+                        }
+
+                        // Store the JWT token in localStorage
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+
+                        // Set a cookie with the token for cross-tab communication
+                        document.cookie = `token=${data.token}; path=/; max-age=86400; secure; samesite=strict`;
+
+                        // Redirect to dashboard
+                        window.location.href = '/dashboard.html';
+                        return;
+                    } catch (error) {
+                        if (retries > 1) {
+                            console.log(`Retrying... (${retries - 1} attempts remaining)`);
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            retries--;
+                            lastError = error;
+                            continue;
+                        }
+                        throw error;
+                    }
                 }
 
-                // Store token and user data
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-
-                // Redirect to dashboard
-                window.location.href = 'dashboard.html';
+                throw new Error(lastError || 'Authentication failed after multiple attempts');
             } catch (error) {
-                console.error('Google sign in error:', error);
-                
-                // Show error message
-                const errorAlert = document.getElementById('errorAlert');
-                errorAlert.textContent = `Google Sign-In failed: ${error.message}. Please try again or use email login.`;
-                errorAlert.style.display = 'block';
-                
-                // Reset Google Sign-In button
-                googleSignInBtn.innerHTML = originalContent;
-                googleSignInBtn.disabled = false;
+                console.error('Google Sign-In error:', error);
+                showError(error.message || 'Sign in failed. Please try again later.');
             }
         }
 
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing...');
-            
             // Initialize Google Sign-In
             initializeGoogleSignIn();
             
