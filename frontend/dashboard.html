@@ -383,7 +383,7 @@
             <div class="container">
                 <div class="row align-items-center">
                     <div class="col-md-6">
-                        <h1 class="welcome-title">Welcome back!</h1>
+                        <h1 class="welcome-title">Welcome back, <span id="welcomeUsername">User</span>!</h1>
                         <p class="welcome-text">Here's what's happening with your investments today.</p>
                     </div>
                     <div class="col-md-6 text-end">
@@ -806,9 +806,10 @@
         // Load user data
         async function loadUserData() {
             try {
-                const response = await fetch(`${api.baseUrl}/api/users/profile`, {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE_URL}/profile`, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        'Authorization': `Bearer ${token}`
                     }
                 });
 
@@ -818,19 +819,39 @@
 
                 const data = await response.json();
                 
-                // Update username in dropdown
+                // Update username in dropdown and welcome message
                 const userNameElement = document.getElementById('userName');
+                const welcomeUsernameElement = document.getElementById('welcomeUsername');
                 if (userNameElement && data.username) {
                     userNameElement.textContent = data.username;
+                    welcomeUsernameElement.textContent = data.username;
                 }
 
                 // Update wallet balance
-                const walletBalanceElement = document.getElementById('walletBalance');
-                if (walletBalanceElement && data.balance !== undefined) {
-                    walletBalanceElement.textContent = `$${data.balance.toFixed(2)}`;
+                const walletBalanceElements = document.querySelectorAll('#walletBalance');
+                walletBalanceElements.forEach(element => {
+                    if (data.balance !== undefined) {
+                        element.textContent = `$${data.balance.toFixed(2)}`;
+                    }
+                });
+
+                // Update total investments
+                const totalInvestmentsElement = document.getElementById('totalInvestments');
+                if (totalInvestmentsElement && data.totalInvested !== undefined) {
+                    totalInvestmentsElement.textContent = `$${data.totalInvested.toFixed(2)}`;
                 }
+
+                // Update total earnings
+                const totalEarningsElement = document.getElementById('totalEarnings');
+                if (totalEarningsElement && data.totalEarnings !== undefined) {
+                    totalEarningsElement.textContent = `$${data.totalEarnings.toFixed(2)}`;
+                }
+
+                // Load investment history
+                loadInvestmentHistory();
             } catch (error) {
                 console.error('Error loading user data:', error);
+                showAlert('Error loading dashboard data', 'danger');
             }
         }
 
