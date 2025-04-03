@@ -887,33 +887,125 @@
     </div>
 
     <!-- New Investment Modal -->
-    <div class="modal fade" id="newInvestmentModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
+    <div class="modal fade" id="newInvestmentModal" tabindex="-1" aria-labelledby="newInvestmentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">New Investment</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title" id="newInvestmentModalLabel">Investment Plans</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="investmentForm">
-                        <div class="mb-3">
-                            <label for="investmentAmount" class="form-label">Investment Amount ($)</label>
-                            <input type="number" class="form-control" id="investmentAmount" required>
+                    <div class="section-header text-center mb-4">
+                        <h2 class="section-subtitle">Choose Your Plan</h2>
+                    </div>
+
+                    <div class="row">
+                        <!-- Gold Plan -->
+                        <div class="col-lg-4 mb-4">
+                            <div class="plan-card gold-plan">
+                                <div class="plan-header">
+                                    <h3 class="plan-name">GOLD PLAN</h3>
+                                    <div class="plan-roi">120% ROI</div>
+                                </div>
+                                <div class="plan-details">
+                                    <p class="plan-duration"><i class="bi bi-calendar me-2"></i> Daily for 30 Days</p>
+                                    <p class="plan-min"><i class="bi bi-arrow-up me-2"></i> Min. Invest $25,000</p>
+                                    <p class="plan-max"><i class="bi bi-arrow-down me-2"></i> Max. Invest $500,000</p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="investmentPlan" class="form-label">Investment Plan</label>
-                            <select class="form-select" id="investmentPlan" required>
-                                <option value="">Select a plan</option>
-                                <option value="basic">Basic Plan (5% daily)</option>
-                                <option value="premium">Premium Plan (10% daily)</option>
-                                <option value="vip">VIP Plan (15% daily)</option>
-                            </select>
+
+                        <!-- Silver Plan -->
+                        <div class="col-lg-4 mb-4">
+                            <div class="plan-card silver-plan">
+                                <div class="plan-header">
+                                    <h3 class="plan-name">SILVER PLAN</h3>
+                                    <div class="plan-roi">80% ROI</div>
+                                </div>
+                                <div class="plan-details">
+                                    <p class="plan-duration"><i class="bi bi-calendar me-2"></i> Daily for 30 Days</p>
+                                    <p class="plan-min"><i class="bi bi-arrow-up me-2"></i> Min. Invest $500</p>
+                                    <p class="plan-max"><i class="bi bi-arrow-down me-2"></i> Max. Invest $24,000</p>
+                                </div>
+                            </div>
                         </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="submitInvestment()">Invest</button>
+
+                        <!-- Bronze Plan -->
+                        <div class="col-lg-4 mb-4">
+                            <div class="plan-card bronze-plan">
+                                <div class="plan-header">
+                                    <h3 class="plan-name">BRONZE PLAN</h3>
+                                    <div class="plan-roi">50% ROI</div>
+                                </div>
+                                <div class="plan-details">
+                                    <p class="plan-duration"><i class="bi bi-calendar me-2"></i> Daily for 30 Days</p>
+                                    <p class="plan-min"><i class="bi bi-arrow-up me-2"></i> Min. Invest $200</p>
+                                    <p class="plan-max"><i class="bi bi-arrow-down me-2"></i> Max. Invest $12,500</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Investment Form -->
+                    <div class="investment-form mt-4">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-8">
+                                <div class="form-card">
+                                    <h3 class="form-title text-center mb-4">Start Investing</h3>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-4">
+                                            <label class="form-label">Choose Plan:</label>
+                                            <select class="form-select plan-select" id="planSelect" onchange="updateAmountLimits()">
+                                                <option value="">Select a plan</option>
+                                                <option value="Gold Plan">Gold Plan ($25,000 - $500,000)</option>
+                                                <option value="Silver Plan">Silver Plan ($500 - $24,000)</option>
+                                                <option value="Bronze Plan">Bronze Plan ($200 - $12,500)</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-4">
+                                            <label class="form-label">Enter Amount ($):</label>
+                                            <input type="number" class="form-control amount-input" id="investmentAmount" min="200" step="1" oninput="validateAmount()">
+                                            <div class="form-text" id="amountHelp"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <div class="profit-display">
+                                                <p class="profit-label">Daily Profit</p>
+                                                <p class="profit-value daily-profit" id="dailyProfit">$0.00</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <div class="profit-display">
+                                                <p class="profit-label">Total Profit</p>
+                                                <p class="profit-value total-profit" id="totalProfit">$0.00</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="text-center mt-4">
+                                        <button class="btn btn-invest" id="investButton" onclick="submitInvestment()">Invest Now <i class="bi bi-arrow-right ms-2"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Methods -->
+                    <div class="payment-methods mt-4">
+                        <h3 class="text-center mb-4">We Accept Payment Methods</h3>
+                        <div class="d-flex flex-wrap justify-content-center gap-3">
+                            <div class="payment-icon"><i class="bi bi-currency-btc"></i> Bitcoin</div>
+                            <div class="payment-icon"><i class="bi bi-currency-eth"></i> Ethereum</div>
+                            <div class="payment-icon"><i class="bi bi-paypal"></i> Paypal</div>
+                            <div class="payment-icon"><i class="bi bi-cash"></i> Cash App</div>
+                            <div class="payment-icon"><i class="bi bi-wallet2"></i> Venmo</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -999,42 +1091,29 @@
         })();
     </script>
     <script>
-        // Check authentication on page load
-        if (!auth.checkAuth()) {
-            console.log('Not authenticated, redirecting to login...');
-            window.location.href = 'login.html';
-        } else {
-            // Load user info
-            const user = JSON.parse(localStorage.getItem('user'));
-            console.log('User data from localStorage:', user);
-            
-            if (!user) {
-                console.error('No user data found in localStorage');
-                window.location.href = 'login.html';
-                return;
+        // Initialize auth and api objects
+        const auth = {
+            checkAuth: function() {
+                return localStorage.getItem('token') !== null;
             }
+        };
 
-            const username = user.username || user.email || 'User';
-            console.log('Displaying username:', username);
-            
-            // Update UI elements
-            document.getElementById('userName').textContent = username;
-            document.getElementById('userFullName').textContent = username;
-            document.getElementById('walletBalance').textContent = `$${user.balance.toFixed(2)}`;
-            document.getElementById('totalInvestments').textContent = `$${user.totalInvested.toFixed(2)}`;
-            document.getElementById('totalEarnings').textContent = `$${user.totalEarnings.toFixed(2)}`;
-            
-            // Load fresh data from server
-            loadUserData();
-        }
+        const api = {
+            baseUrl: 'http://localhost:3000'
+        };
 
-        // Load user data
+        // Function to load user data
         async function loadUserData() {
             try {
-                console.log('Fetching user data from server...');
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
                 const response = await fetch(`${api.baseUrl}/api/users/profile`, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        'Authorization': `Bearer ${token}`
                     }
                 });
 
@@ -1045,20 +1124,15 @@
                 const data = await response.json();
                 console.log('User data from server:', data);
                 
+                // Update username in dropdown and welcome message
                 const username = data.username || data.email || 'User';
-                console.log('Updating UI with username:', username);
-                
-                // Update username in dropdown
                 document.getElementById('userName').textContent = username;
                 document.getElementById('userFullName').textContent = username;
 
-                // Update wallet balance
-                const walletBalanceElement = document.getElementById('walletBalance');
-                if (walletBalanceElement && data.balance !== undefined) {
-                    walletBalanceElement.textContent = `$${data.balance.toFixed(2)}`;
+                // Update wallet balance and other stats
+                if (data.balance !== undefined) {
+                    document.getElementById('walletBalance').textContent = `$${data.balance.toFixed(2)}`;
                 }
-
-                // Update other user data
                 if (data.totalInvested !== undefined) {
                     document.getElementById('totalInvestments').textContent = `$${data.totalInvested.toFixed(2)}`;
                 }
@@ -1067,62 +1141,26 @@
                 }
             } catch (error) {
                 console.error('Error loading user data:', error);
-                // Show error to user
                 showAlert('Failed to load user data. Please try refreshing the page.', 'danger');
             }
         }
 
-        // Check if user is authenticated
-        document.addEventListener('DOMContentLoaded', async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
+        // Check authentication and load user data on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!auth.checkAuth()) {
+                console.log('Not authenticated, redirecting to login...');
                 window.location.href = 'login.html';
                 return;
             }
 
-            // Fetch user data and investments
-            try {
-                const [userResponse, investmentsResponse] = await Promise.all([
-                    fetch('/api/user', {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    }),
-                    fetch('/api/investments/my-investments', {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    })
-                ]);
-
-                if (!userResponse.ok || !investmentsResponse.ok) {
-                    throw new Error('Failed to fetch data');
-                }
-
-                const userData = await userResponse.json();
-                const investments = await investmentsResponse.json();
-
-                // Update dashboard with user data
-                document.getElementById('userName').textContent = userData.username;
-                document.getElementById('userFullName').textContent = userData.fullName || userData.username;
-                document.getElementById('walletBalance').textContent = `$${userData.balance.toFixed(2)}`;
-                document.getElementById('totalInvestments').textContent = `$${userData.totalInvested.toFixed(2)}`;
-                document.getElementById('totalEarnings').textContent = `$${userData.totalEarnings.toFixed(2)}`;
-
-                // Update investment history
-                updateInvestmentHistory(investments);
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                showAlert('Error loading dashboard data', 'danger');
-            }
+            // Load user data
+            loadUserData();
 
             // Add logout functionality
             document.getElementById('logoutBtn').addEventListener('click', (e) => {
                 e.preventDefault();
-                // Clear all stored data
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
-                // Redirect to login page
                 window.location.href = 'login.html';
             });
         });
@@ -1257,6 +1295,119 @@
             validateAmount();
         });
 
+        // Function to update amount limits based on selected plan
+        function updateAmountLimits() {
+            const planSelect = document.getElementById('planSelect');
+            const amountInput = document.getElementById('investmentAmount');
+            const amountHelp = document.getElementById('amountHelp');
+            const investButton = document.getElementById('investButton');
+
+            if (!planSelect.value) {
+                amountInput.disabled = true;
+                amountInput.value = '';
+                amountHelp.textContent = 'Please select a plan first';
+                investButton.disabled = true;
+                return;
+            }
+
+            amountInput.disabled = false;
+            investButton.disabled = false;
+
+            switch(planSelect.value) {
+                case 'Gold Plan':
+                    amountInput.min = 25000;
+                    amountInput.max = 500000;
+                    amountHelp.textContent = `Enter amount between $25,000 and $500,000`;
+                    break;
+                case 'Silver Plan':
+                    amountInput.min = 500;
+                    amountInput.max = 24000;
+                    amountHelp.textContent = `Enter amount between $500 and $24,000`;
+                    break;
+                case 'Bronze Plan':
+                    amountInput.min = 200;
+                    amountInput.max = 12500;
+                    amountHelp.textContent = `Enter amount between $200 and $12,500`;
+                    break;
+            }
+
+            validateAmount();
+        }
+
+        // Function to validate amount
+        function validateAmount() {
+            const planSelect = document.getElementById('planSelect');
+            const amountInput = document.getElementById('investmentAmount');
+            const amountHelp = document.getElementById('amountHelp');
+            const investButton = document.getElementById('investButton');
+
+            if (!planSelect.value) {
+                amountHelp.textContent = 'Please select a plan first';
+                investButton.disabled = true;
+                return;
+            }
+
+            const amount = parseFloat(amountInput.value) || 0;
+            let minAmount, maxAmount;
+
+            switch(planSelect.value) {
+                case 'Gold Plan':
+                    minAmount = 25000;
+                    maxAmount = 500000;
+                    break;
+                case 'Silver Plan':
+                    minAmount = 500;
+                    maxAmount = 24000;
+                    break;
+                case 'Bronze Plan':
+                    minAmount = 200;
+                    maxAmount = 12500;
+                    break;
+            }
+
+            if (amount < minAmount) {
+                amountHelp.textContent = `Minimum amount is $${minAmount}`;
+                investButton.disabled = true;
+            } else if (amount > maxAmount) {
+                amountHelp.textContent = `Maximum amount is $${maxAmount}`;
+                investButton.disabled = true;
+            } else {
+                amountHelp.textContent = '';
+                investButton.disabled = false;
+            }
+
+            calculateProfits();
+        }
+
+        // Function to calculate profits
+        function calculateProfits() {
+            const planSelect = document.getElementById('planSelect');
+            const amountInput = document.getElementById('investmentAmount');
+            const amount = parseFloat(amountInput.value) || 0;
+            
+            let dailyRate, totalRate;
+            switch(planSelect.value) {
+                case 'Gold Plan':
+                    dailyRate = 0.04; // 4% daily
+                    totalRate = 1.2; // 120% total
+                    break;
+                case 'Silver Plan':
+                    dailyRate = 0.0267; // 2.67% daily
+                    totalRate = 0.8; // 80% total
+                    break;
+                case 'Bronze Plan':
+                    dailyRate = 0.0167; // 1.67% daily
+                    totalRate = 0.5; // 50% total
+                    break;
+            }
+
+            const dailyProfit = amount * dailyRate;
+            const totalProfit = amount * totalRate;
+
+            document.getElementById('dailyProfit').textContent = `$${dailyProfit.toFixed(2)}`;
+            document.getElementById('totalProfit').textContent = `$${totalProfit.toFixed(2)}`;
+        }
+
         // Function to submit investment
         function submitInvestment() {
             const planSelect = document.getElementById('planSelect');
@@ -1317,7 +1468,7 @@
             document.getElementById('investmentDetails').value = investmentDetails;
 
             // Close the investment modal and show the instructions modal
-            liveChatModal.hide();
+            newInvestmentModal.hide();
             investmentInstructionsModal.show();
         }
 
@@ -1338,131 +1489,6 @@
             // Open Tawk.to chat
             Tawk_API.maximize();
         }
-
-        // Function to update the openLiveChat function
-        function openLiveChat(action) {
-            // Reset modal state
-            document.getElementById('investmentPlansSection').style.display = 'block';
-            document.getElementById('chatSection').style.display = 'none';
-            document.getElementById('liveChatModalLabel').textContent = 'Investment Plans';
-
-            // Show the modal
-            liveChatModal.show();
-        }
-
-        // Handle modal close
-        document.getElementById('liveChatModal').addEventListener('hidden.bs.modal', function () {
-            // Reset modal state
-            document.getElementById('investmentPlansSection').style.display = 'block';
-            document.getElementById('chatSection').style.display = 'none';
-            document.getElementById('liveChatModalLabel').textContent = 'Investment Plans';
-        });
-
-        // Initialize form state
-        document.addEventListener('DOMContentLoaded', () => {
-            updateAmountLimits();
-        });
-
-        // Function to validate withdrawal amount
-        function validateWithdrawalAmount() {
-            const availableBalance = parseFloat(document.getElementById('availableBalance').value) || 0;
-            const withdrawalAmount = parseFloat(document.getElementById('withdrawalAmount').value) || 0;
-            const withdrawalHelp = document.getElementById('withdrawalHelp');
-            const withdrawButton = document.getElementById('withdrawButton');
-
-            if (withdrawalAmount < 100) {
-                withdrawalHelp.textContent = 'Minimum withdrawal amount is $100';
-                withdrawButton.disabled = true;
-            } else if (withdrawalAmount > availableBalance) {
-                withdrawalHelp.textContent = 'Insufficient balance';
-                withdrawButton.disabled = true;
-            } else {
-                withdrawalHelp.textContent = '';
-                if (document.getElementById('paymentMethod').value && document.getElementById('paymentDetails').value) {
-                    withdrawButton.disabled = false;
-                }
-            }
-        }
-
-        // Function to update payment details
-        function updatePaymentDetails() {
-            const paymentMethod = document.getElementById('paymentMethod').value;
-            const paymentDetails = document.getElementById('paymentDetails');
-            const paymentHelp = document.getElementById('paymentHelp');
-            const withdrawButton = document.getElementById('withdrawButton');
-
-            paymentDetails.value = '';
-            paymentHelp.textContent = '';
-
-            switch(paymentMethod) {
-                case 'Bitcoin':
-                    paymentHelp.textContent = 'Enter your Bitcoin wallet address';
-                    break;
-                case 'Ethereum':
-                    paymentHelp.textContent = 'Enter your Ethereum wallet address';
-                    break;
-                case 'PayPal':
-                    paymentHelp.textContent = 'Enter your PayPal email address';
-                    break;
-                case 'CashApp':
-                    paymentHelp.textContent = 'Enter your Cash App username';
-                    break;
-                case 'Venmo':
-                    paymentHelp.textContent = 'Enter your Venmo username';
-                    break;
-            }
-
-            if (paymentMethod && paymentDetails.value && !document.getElementById('withdrawalHelp').textContent) {
-                withdrawButton.disabled = false;
-            }
-        }
-
-        // Function to submit withdrawal
-        function submitWithdrawal() {
-            const amount = parseFloat(document.getElementById('withdrawalAmount').value) || 0;
-            const paymentMethod = document.getElementById('paymentMethod').value;
-            const paymentDetails = document.getElementById('paymentDetails').value;
-
-            if (!amount || amount < 100) {
-                showAlert('Please enter a valid withdrawal amount (minimum $100)', 'danger');
-                return;
-            }
-
-            if (!paymentMethod || !paymentDetails) {
-                showAlert('Please provide payment method and details', 'danger');
-                return;
-            }
-
-            // Generate withdrawal details message
-            const withdrawalDetails = `I would like to withdraw $${amount.toFixed(2)}.\n\nWithdrawal Details:\n- Amount: $${amount.toFixed(2)}\n- Payment Method: ${paymentMethod}\n- Payment Details: ${paymentDetails}\n\nPlease process my withdrawal request.`;
-
-            // Set the withdrawal details in the textarea
-            document.getElementById('withdrawalDetails').value = withdrawalDetails;
-
-            // Close the withdrawal modal and show the instructions modal
-            withdrawalModal.hide();
-            withdrawalInstructionsModal.show();
-        }
-
-        // Function to copy withdrawal details to clipboard
-        function copyWithdrawalToClipboard() {
-            const textarea = document.getElementById('withdrawalDetails');
-            textarea.select();
-            document.execCommand('copy');
-            
-            // Show success message
-            const button = document.querySelector('#withdrawalInstructionsModal .btn-primary');
-            const originalText = button.innerHTML;
-            button.innerHTML = '<i class="bi bi-check-circle me-2"></i>Copied!';
-            setTimeout(() => {
-                button.innerHTML = originalText;
-            }, 2000);
-        }
-
-        // Add click handler for balance management
-        document.querySelector('.action-card:nth-child(2)').addEventListener('click', () => {
-            openBalanceModal();
-        });
 
         // Function to update amount label based on operation
         function updateAmountLabel() {
