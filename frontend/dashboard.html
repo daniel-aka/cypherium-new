@@ -1049,6 +1049,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom JavaScript -->
     <script>
+        // API Configuration
+        const API_BASE_URL = 'http://localhost:3000'; // Update this to your actual backend URL
+
         // Check authentication on page load
         document.addEventListener('DOMContentLoaded', function() {
             const token = localStorage.getItem('token');
@@ -1073,7 +1076,7 @@
         async function loadUserData() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/api/user/profile', {
+                const response = await fetch(`${API_BASE_URL}/profile`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -1092,10 +1095,12 @@
                 }
 
                 // Update wallet balance
-                const walletBalanceElement = document.getElementById('walletBalance');
-                if (walletBalanceElement && data.balance !== undefined) {
-                    walletBalanceElement.textContent = `$${data.balance.toFixed(2)}`;
-                }
+                const walletBalanceElements = document.querySelectorAll('#walletBalance');
+                walletBalanceElements.forEach(element => {
+                    if (data.balance !== undefined) {
+                        element.textContent = `$${data.balance.toFixed(2)}`;
+                    }
+                });
 
                 // Update total investments
                 const totalInvestmentsElement = document.getElementById('totalInvestments');
@@ -1121,7 +1126,7 @@
         async function loadInvestmentHistory() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/api/investments/history', {
+                const response = await fetch(`${API_BASE_URL}/my-investments`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -1178,7 +1183,11 @@
                 ${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
-            document.querySelector('.container').insertBefore(alertContainer, document.querySelector('.row'));
+            
+            const container = document.querySelector('main.container');
+            if (container) {
+                container.insertBefore(alertContainer, container.firstChild);
+            }
         }
 
         // Handle logout
@@ -1188,6 +1197,186 @@
             localStorage.removeItem('user');
             window.location.href = 'login.html';
         });
+
+        // Function to update amount limits based on selected plan
+        function updateAmountLimits() {
+            const planSelect = document.getElementById('planSelect');
+            const amountInput = document.getElementById('investmentAmount');
+            const amountHelp = document.getElementById('amountHelp');
+            const investButton = document.getElementById('investButton');
+
+            if (!planSelect.value) {
+                amountInput.disabled = true;
+                amountInput.value = '';
+                amountHelp.textContent = 'Please select a plan first';
+                investButton.disabled = true;
+                return;
+            }
+
+            amountInput.disabled = false;
+            investButton.disabled = false;
+
+            switch(planSelect.value) {
+                case 'Gold Plan':
+                    amountInput.min = 25000;
+                    amountInput.max = 500000;
+                    amountHelp.textContent = `Enter amount between $25,000 and $500,000`;
+                    break;
+                case 'Silver Plan':
+                    amountInput.min = 500;
+                    amountInput.max = 24000;
+                    amountHelp.textContent = `Enter amount between $500 and $24,000`;
+                    break;
+                case 'Bronze Plan':
+                    amountInput.min = 200;
+                    amountInput.max = 12500;
+                    amountHelp.textContent = `Enter amount between $200 and $12,500`;
+                    break;
+            }
+
+            validateAmount();
+        }
+
+        // Function to validate amount
+        function validateAmount() {
+            const planSelect = document.getElementById('planSelect');
+            const amountInput = document.getElementById('investmentAmount');
+            const amountHelp = document.getElementById('amountHelp');
+            const investButton = document.getElementById('investButton');
+
+            if (!planSelect.value) {
+                amountHelp.textContent = 'Please select a plan first';
+                investButton.disabled = true;
+                return;
+            }
+
+            const amount = parseFloat(amountInput.value) || 0;
+            let minAmount, maxAmount;
+
+            switch(planSelect.value) {
+                case 'Gold Plan':
+                    minAmount = 25000;
+                    maxAmount = 500000;
+                    break;
+                case 'Silver Plan':
+                    minAmount = 500;
+                    maxAmount = 24000;
+                    break;
+                case 'Bronze Plan':
+                    minAmount = 200;
+                    maxAmount = 12500;
+                    break;
+            }
+
+            if (amount < minAmount) {
+                amountHelp.textContent = `Minimum amount is $${minAmount}`;
+                investButton.disabled = true;
+            } else if (amount > maxAmount) {
+                amountHelp.textContent = `Maximum amount is $${maxAmount}`;
+                investButton.disabled = true;
+            } else {
+                amountHelp.textContent = '';
+                investButton.disabled = false;
+            }
+
+            calculateProfits();
+        }
+
+        // Function to calculate profits
+        function calculateProfits() {
+            const planSelect = document.getElementById('planSelect');
+            const amountInput = document.getElementById('investmentAmount');
+            const amount = parseFloat(amountInput.value) || 0;
+            
+            let dailyRate, totalRate;
+            switch(planSelect.value) {
+                case 'Gold Plan':
+                    dailyRate = 0.04; // 4% daily
+                    totalRate = 1.2; // 120% total
+                    break;
+                case 'Silver Plan':
+                    dailyRate = 0.0267; // 2.67% daily
+                    totalRate = 0.8; // 80% total
+                    break;
+                case 'Bronze Plan':
+                    dailyRate = 0.0167; // 1.67% daily
+                    totalRate = 0.5; // 50% total
+                    break;
+            }
+
+            const dailyProfit = amount * dailyRate;
+            const totalProfit = amount * totalRate;
+
+            document.getElementById('dailyProfit').textContent = `$${dailyProfit.toFixed(2)}`;
+            document.getElementById('totalProfit').textContent = `$${totalProfit.toFixed(2)}`;
+        }
+
+        // Function to submit investment
+        function submitInvestment() {
+            const planSelect = document.getElementById('planSelect');
+            const amountInput = document.getElementById('investmentAmount');
+            const amount = parseFloat(amountInput.value) || 0;
+
+            if (!planSelect.value) {
+                showAlert('Please select a plan', 'danger');
+                return;
+            }
+
+            // Validate amount based on plan
+            let minAmount, maxAmount;
+            switch(planSelect.value) {
+                case 'Gold Plan':
+                    minAmount = 25000;
+                    maxAmount = 500000;
+                    break;
+                case 'Silver Plan':
+                    minAmount = 500;
+                    maxAmount = 24000;
+                    break;
+                case 'Bronze Plan':
+                    minAmount = 200;
+                    maxAmount = 12500;
+                    break;
+            }
+
+            if (!amount || amount < minAmount || amount > maxAmount) {
+                showAlert(`Please enter an amount between $${minAmount} and $${maxAmount} for the ${planSelect.value}`, 'danger');
+                return;
+            }
+
+            // Calculate profits
+            let dailyRate, totalRate;
+            switch(planSelect.value) {
+                case 'Gold Plan':
+                    dailyRate = 0.04;
+                    totalRate = 1.2;
+                    break;
+                case 'Silver Plan':
+                    dailyRate = 0.0267;
+                    totalRate = 0.8;
+                    break;
+                case 'Bronze Plan':
+                    dailyRate = 0.0167;
+                    totalRate = 0.5;
+                    break;
+            }
+
+            const dailyProfit = amount * dailyRate;
+            const totalProfit = amount * totalRate;
+
+            // Generate investment details message
+            const investmentDetails = `I would like to invest $${amount.toFixed(2)} in the ${planSelect.value}.\n\nInvestment Details:\n- Amount: $${amount.toFixed(2)}\n- Daily Profit: $${dailyProfit.toFixed(2)}\n- Total Profit: $${totalProfit.toFixed(2)}\n- Duration: 30 Days\n\nPlease provide payment instructions.`;
+
+            // Set the investment details in the textarea
+            document.getElementById('investmentDetails').value = investmentDetails;
+
+            // Close the investment modal and show the instructions modal
+            const investmentModal = bootstrap.Modal.getInstance(document.getElementById('newInvestmentModal'));
+            investmentModal.hide();
+            
+            const instructionsModal = new bootstrap.Modal(document.getElementById('investmentInstructionsModal'));
+            instructionsModal.show();
+        }
     </script>
 </body>
 </html>
