@@ -99,130 +99,59 @@ async function handleUserAuth(payload) {
 }
 
 // Google Sign-In endpoint
-router.post('/', async (req, res) => {
+router.post('/google', async (req, res) => {
     try {
-        console.log('Received Google sign-in request');
-        console.log('Environment check:', {
-            GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Missing',
-            MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Missing',
-            NODE_ENV: process.env.NODE_ENV || 'development',
-            MongoDB_State: mongoose.connection.readyState
-        });
-        
         const { credential } = req.body;
-
+        
         if (!credential) {
-            console.error('No credential provided');
             return res.status(400).json({ error: 'No credential provided' });
         }
 
-        // Check token cache
-        if (tokenCache.has(credential)) {
-            console.log('Using cached token');
-            return res.json(tokenCache.get(credential));
-        }
-
-        if (!process.env.GOOGLE_CLIENT_ID) {
-            console.error('GOOGLE_CLIENT_ID is not set');
-            return res.status(500).json({ 
-                error: 'Configuration error',
-                details: 'GOOGLE_CLIENT_ID is not set'
-            });
-        }
-
-        // Check MongoDB connection
-        if (mongoose.connection.readyState !== 1) {
-            console.error('MongoDB is not connected. Current state:', mongoose.connection.readyState);
-            // Try to reconnect
-            try {
-                await mongoose.connect(process.env.MONGODB_URI, {
-                    useNewUrlParser: true,
-                    useUnifiedTopology: true,
-                    serverSelectionTimeoutMS: 5000,
-                    socketTimeoutMS: 5000,
-                    keepAlive: true,
-                    keepAliveInitialDelay: 300000
-                });
-                console.log('MongoDB reconnected successfully');
-            } catch (error) {
-                console.error('Failed to reconnect to MongoDB:', error);
-                return res.status(503).json({ 
-                    error: 'Database error',
-                    details: 'Failed to connect to database'
-                });
-            }
-        }
-
-        console.log('Verifying Google token');
         const ticket = await client.verifyIdToken({
             idToken: credential,
             audience: process.env.GOOGLE_CLIENT_ID
         });
 
         const payload = ticket.getPayload();
-        console.log('Token verified for:', payload.email);
+        const { email, name, picture } = payload;
 
-        // Validate token audience
-        if (payload.aud !== process.env.GOOGLE_CLIENT_ID) {
-            console.error('Invalid token audience:', payload.aud);
-            return res.status(401).json({ error: 'Invalid token audience' });
+        // Check if user exists
+        let user = await User.findOne({ email });
+
+        if (!user) {
+            // Create new user
+            user = new User({
+                email,
+                username: email.split('@')[0],
+                fullName: name,
+                profilePicture: picture,
+                isVerified: true
+            });
+            await user.save();
         }
-
-        const user = await handleUserAuth(payload);
 
         // Generate JWT token
         const token = jwt.sign(
-            { 
-                userId: user._id,
-                email: user.email,
-                role: user.role || 'user'
-            },
+            { userId: user._id, email: user.email },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
 
-        // Cache the token result
-        tokenCache.set(credential, { user, token });
-        
-        res.json({ user, token });
-    } catch (error) {
-        console.error('Google authentication error:', {
-            message: error.message,
-            stack: error.stack,
-            name: error.name,
-            code: error.code,
-            mongodbState: mongoose.connection.readyState
+        res.json({
+            token,
+            user: {
+                id: user._id,
+                email: user.email,
+                username: user.username,
+                fullName: user.fullName,
+                profilePicture: user.profilePicture
+            }
         });
-        
-        // Handle specific error types
-        if (error.message.includes('Token used too late')) {
-            return res.status(401).json({ error: 'Token expired' });
-        }
-        if (error.message.includes('Invalid token signature')) {
-            return res.status(401).json({ error: 'Invalid token' });
-        }
-        if (error.message.includes('User lookup timeout')) {
-            return res.status(504).json({ error: 'Database timeout' });
-        }
-        if (error.message.includes('Invalid payload')) {
-            return res.status(400).json({ error: error.message });
-        }
-        if (error.name === 'MongoError' || error.name === 'MongoServerError') {
-            return res.status(503).json({ 
-                error: 'Database error',
-                details: process.env.NODE_ENV === 'development' ? error.message : undefined
-            });
-        }
-        if (error.message.includes('Database connection is not ready')) {
-            return res.status(503).json({ 
-                error: 'Database error',
-                details: 'Database connection is not ready'
-            });
-        }
-        
-        res.status(500).json({ 
+    } catch (error) {
+        console.error('Google auth error:', error);
+        res.status(500).json({
             error: 'Authentication failed',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            message: error.message
         });
     }
 });

@@ -3,11 +3,12 @@ const cors = require('cors');
 const path = require('path');
 const mongoose = require('mongoose');
 require('dotenv').config();
-const { connectWithRetry } = require('./utils/db');
+const { connectWithRetry, isConnected } = require('./utils/db');
 const checkDatabaseConnection = require('./middleware/dbMiddleware');
 const healthRoutes = require('./routes/healthRoutes');
 const userRoutes = require('./routes/userRoutes');
 const investmentRoutes = require('./routes/investmentRoutes');
+const googleAuthRoutes = require('./routes/googleAuth');
 
 // Validate required environment variables
 const requiredEnvVars = [
@@ -106,11 +107,21 @@ app.use((err, req, res, next) => {
 // Initialize database connection
 connectWithRetry();
 
+// Add database connection check middleware
+app.use('/api', async (req, res, next) => {
+    if (!isConnected()) {
+        console.log('Database not connected, attempting to reconnect...');
+        await connectWithRetry();
+    }
+    next();
+});
+
 // Routes
 app.use('/api/health', healthRoutes);
 app.use('/api', checkDatabaseConnection); // Apply database check to all API routes
 app.use('/api/user', userRoutes);
 app.use('/api/investments', investmentRoutes);
+app.use('/api/auth/google', googleAuthRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -167,4 +178,5 @@ module.exports = app;
 const PORT = process.env.PORT || 5003;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    console.log('Database connection status:', isConnected() ? 'Connected' : 'Disconnected');
 });
