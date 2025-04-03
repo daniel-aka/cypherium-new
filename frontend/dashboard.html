@@ -751,11 +751,11 @@
     </div>
 
     <!-- Withdrawal Modal -->
-    <div class="modal fade" id="withdrawalModal" tabindex="-1" aria-labelledby="withdrawalModalLabel" aria-hidden="true">
+    <div class="modal fade" id="withdrawModal" tabindex="-1" aria-labelledby="withdrawModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="withdrawalModalLabel">Withdraw Funds</h5>
+                    <h5 class="modal-title" id="withdrawModalLabel">Withdraw Funds</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -1198,12 +1198,11 @@
         // Initialize modals
         const liveChatModal = new bootstrap.Modal(document.getElementById('liveChatModal'));
         const investmentInstructionsModal = new bootstrap.Modal(document.getElementById('investmentInstructionsModal'));
-        const withdrawalModal = new bootstrap.Modal(document.getElementById('withdrawalModal'));
+        const withdrawModal = new bootstrap.Modal(document.getElementById('withdrawModal'));
         const withdrawalInstructionsModal = new bootstrap.Modal(document.getElementById('withdrawalInstructionsModal'));
         const balanceModal = new bootstrap.Modal(document.getElementById('balanceModal'));
         const newInvestmentModal = new bootstrap.Modal(document.getElementById('newInvestmentModal'));
         const depositModal = new bootstrap.Modal(document.getElementById('depositModal'));
-        const withdrawModal = new bootstrap.Modal(document.getElementById('withdrawModal'));
 
         // Add click handlers to the action cards
         document.querySelector('.action-card[data-bs-toggle="modal"][data-bs-target="#newInvestmentModal"]').addEventListener('click', () => {
@@ -1215,6 +1214,19 @@
         });
 
         document.querySelector('.action-card[data-bs-toggle="modal"][data-bs-target="#withdrawModal"]').addEventListener('click', () => {
+            // Set available balance
+            const availableBalance = document.getElementById('walletBalance').textContent;
+            document.getElementById('availableBalance').value = availableBalance;
+            
+            // Reset form
+            document.getElementById('withdrawalAmount').value = '';
+            document.getElementById('paymentMethod').value = '';
+            document.getElementById('paymentDetails').value = '';
+            document.getElementById('withdrawalHelp').textContent = '';
+            document.getElementById('paymentHelp').textContent = '';
+            document.getElementById('withdrawButton').disabled = true;
+            
+            // Show modal
             withdrawModal.show();
         });
 
@@ -1244,7 +1256,7 @@
             document.getElementById('withdrawButton').disabled = true;
             
             // Show modal
-            withdrawalModal.show();
+            withdrawModal.show();
         }
 
         // Function to open balance modal
@@ -1607,11 +1619,10 @@
             document.getElementById('withdrawalDetails').value = withdrawalDetails;
 
             // Close the withdrawal modal and show the instructions modal
-            const withdrawModal = bootstrap.Modal.getInstance(document.getElementById('withdrawalModal'));
-            const withdrawalInstructionsModal = new bootstrap.Modal(document.getElementById('withdrawalInstructionsModal'));
-            
             withdrawModal.hide();
-            withdrawalInstructionsModal.show();
+            setTimeout(() => {
+                withdrawalInstructionsModal.show();
+            }, 300);
         }
 
         // Function to copy withdrawal details to clipboard
