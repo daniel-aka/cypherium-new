@@ -190,28 +190,32 @@
 
         // Handle Google Sign In
         async function handleGoogleSignIn(response) {
+            const googleSignInBtn = document.querySelector('.g_id_signin');
+            const originalContent = googleSignInBtn.innerHTML;
+            
             try {
                 console.log('Google sign-in response received');
                 
                 // Show loading state
-                const googleSignInBtn = document.querySelector('.g_id_signin');
-                const originalContent = googleSignInBtn.innerHTML;
                 googleSignInBtn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Signing in...';
                 googleSignInBtn.disabled = true;
 
                 // Try to authenticate with Google
-                const authResponse = await fetch('/api/auth/google', {
+                const authResponse = await fetch('https://cypherium.vercel.app/api/auth/google', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify({
                         credential: response.credential
-                    })
+                    }),
+                    credentials: 'include'
                 });
 
                 if (!authResponse.ok) {
-                    throw new Error('Authentication failed');
+                    const errorData = await authResponse.json();
+                    throw new Error(errorData.message || 'Authentication failed');
                 }
 
                 const data = await authResponse.json();
@@ -235,7 +239,6 @@
                 errorAlert.style.display = 'block';
                 
                 // Reset Google Sign-In button
-                const googleSignInBtn = document.querySelector('.g_id_signin');
                 googleSignInBtn.innerHTML = originalContent;
                 googleSignInBtn.disabled = false;
             }
