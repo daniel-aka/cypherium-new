@@ -189,40 +189,42 @@
         }
 
         // Handle Google Sign In
-        window.handleGoogleSignIn = async (response) => {
+        async function handleGoogleSignIn(response) {
             try {
-                console.log('Google sign-in response received');
-                console.log('Credential:', response.credential);
-                
-                // Make API call to backend
-                const result = await fetch(`${config.backendUrl}/api/auth/google`, {
+                console.log('Google Sign-In response:', response);
+                const credential = response.credential;
+                console.log('Google credential:', credential);
+
+                const apiResponse = await fetch('https://cypherium.vercel.app/api/auth/google', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ credential: response.credential })
+                    body: JSON.stringify({ credential }),
+                    credentials: 'include'
                 });
 
-                if (!result.ok) {
-                    const errorData = await result.json();
-                    throw new Error(errorData.error || 'Failed to sign in with Google');
+                const data = await apiResponse.json();
+                console.log('Authentication response:', data);
+
+                if (!apiResponse.ok) {
+                    throw new Error(data.error || 'Authentication failed');
                 }
 
-                const data = await result.json();
-                console.log('Sign-in successful:', data);
-                
-                // Store the token if received
-                if (data.token) {
-                    localStorage.setItem('token', data.token);
-                }
-                
+                // Store the JWT token in localStorage
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+
+                // Set a cookie with the token for cross-tab communication
+                document.cookie = `token=${data.token}; path=/; max-age=86400; secure; samesite=strict`;
+
                 // Redirect to dashboard
-                window.location.href = 'dashboard.html';
+                window.location.href = '/dashboard.html';
             } catch (error) {
-                console.error('Google sign in error:', error);
-                showError(error.message || 'Failed to sign in with Google');
+                console.error('Google Sign-In error:', error);
+                alert('Sign in failed: ' + error.message);
             }
-        };
+        }
 
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing...');

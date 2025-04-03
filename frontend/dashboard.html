@@ -783,25 +783,20 @@
         })();
     </script>
     <script>
-        // Check authentication
-        document.addEventListener('DOMContentLoaded', function() {
-            const token = localStorage.getItem('token');
+        // Check authentication on page load
+        if (!auth.checkAuth()) {
+            // Redirect will happen automatically if not authenticated
+            console.log('Not authenticated, redirecting to login...');
+        } else {
+            // Load user info
             const user = JSON.parse(localStorage.getItem('user'));
-
-            if (!token || !user) {
-                window.location.href = 'login.html';
-                return;
-            }
-
-            // Update username in dropdown
-            const userNameElement = document.getElementById('userName');
-            if (userNameElement && user.username) {
-                userNameElement.textContent = user.username;
-            }
-
-            // Load user data
+            document.getElementById('userName').textContent = user.username;
+            document.getElementById('userFullName').textContent = user.fullName || user.username;
+            document.getElementById('walletBalance').textContent = `$${user.balance.toFixed(2)}`;
+            document.getElementById('totalInvestments').textContent = `$${user.totalInvested.toFixed(2)}`;
+            document.getElementById('totalEarnings').textContent = `$${user.totalEarnings.toFixed(2)}`;
             loadUserData();
-        });
+        }
 
         // Load user data
         async function loadUserData() {
@@ -819,10 +814,8 @@
                 const data = await response.json();
                 
                 // Update username in dropdown
-                const userNameElement = document.getElementById('userName');
-                if (userNameElement && data.username) {
-                    userNameElement.textContent = data.username;
-                }
+                document.getElementById('userName').textContent = data.username;
+                document.getElementById('userFullName').textContent = data.fullName || data.username;
 
                 // Update wallet balance
                 const walletBalanceElement = document.getElementById('walletBalance');

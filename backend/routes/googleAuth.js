@@ -3,6 +3,7 @@ const router = express.Router();
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 
 // Initialize Google OAuth client with error handling
 let client;
@@ -169,10 +170,21 @@ router.post('/', async (req, res) => {
 
         const user = await handleUserAuth(payload);
         
+        // Generate JWT token
+        const token = jwt.sign(
+            { 
+                userId: user._id,
+                email: user.email,
+                role: user.role || 'user'
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
         // Cache the token result
-        tokenCache.set(credential, { user });
+        tokenCache.set(credential, { user, token });
         
-        res.json({ user });
+        res.json({ user, token });
     } catch (error) {
         console.error('Google authentication error:', {
             message: error.message,
