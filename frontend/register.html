@@ -97,12 +97,22 @@
                 </div>
                 <div class="form-group mb-3">
                     <label class="form-label">Password:</label>
-                    <input type="password" class="form-control" id="password" required>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="password" required>
+                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                            <i class="bi bi-eye-slash"></i>
+                        </button>
+                    </div>
                     <div class="form-text">Password must be at least 8 characters long</div>
                 </div>
                 <div class="form-group mb-3">
                     <label class="form-label">Confirm Password:</label>
-                    <input type="password" class="form-control" id="confirmPassword" required>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="confirmPassword" required>
+                        <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
+                            <i class="bi bi-eye-slash"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="form-group mb-3">
                     <label class="form-label">Secret Question:</label>
@@ -137,30 +147,11 @@
     <!-- API Service -->
     <script src="js/api.js"></script>
     <script>
-        // Set Google client ID
-        window.googleClientId = config.googleClientId;
+        // Remove Google Sign-In button and configuration
+        document.getElementById('g_id_onload').remove();
+        document.querySelector('.g_id_signin').remove();
         
-        // Handle Google Sign In
-        async function handleGoogleSignIn(response) {
-            try {
-                console.log('Google sign-in response received');
-                const data = await api.auth.googleSignIn(response.credential);
-                
-                // Redirect to dashboard
-                window.location.href = 'dashboard.html';
-            } catch (error) {
-                console.error('Google sign in error:', error);
-                const errorAlert = document.getElementById('errorAlert');
-                errorAlert.textContent = `An error occurred during Google sign in: ${error.message}`;
-                errorAlert.style.display = 'block';
-            }
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
-            // Set Google client ID
-            const gIdOnload = document.getElementById('g_id_onload');
-            gIdOnload.setAttribute('data-client_id', config.googleClientId);
-            
             const registerForm = document.getElementById('registerForm');
             const errorAlert = document.getElementById('errorAlert');
             const togglePassword = document.getElementById('togglePassword');
@@ -170,14 +161,16 @@
             
             // Password toggle functionality
             function setupPasswordToggle(toggleBtn, input) {
-                toggleBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
-                    input.setAttribute('type', type);
-                    const icon = this.querySelector('i');
-                    icon.classList.remove('bi-eye', 'bi-eye-slash');
-                    icon.classList.add(type === 'password' ? 'bi-eye-slash' : 'bi-eye');
-                });
+                if (toggleBtn && input) {
+                    toggleBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+                        input.setAttribute('type', type);
+                        const icon = this.querySelector('i');
+                        icon.classList.remove('bi-eye', 'bi-eye-slash');
+                        icon.classList.add(type === 'password' ? 'bi-eye-slash' : 'bi-eye');
+                    });
+                }
             }
             
             setupPasswordToggle(togglePassword, passwordInput);
