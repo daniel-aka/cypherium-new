@@ -322,76 +322,73 @@
             color: var(--primary-color);
         }
 
-        /* Responsive styles */
+        /* Responsive welcome section */
         @media (max-width: 768px) {
             .welcome-section {
                 padding: 1.5rem;
             }
-
             .welcome-title {
                 font-size: 1.5rem;
             }
-
             .balance-info {
                 text-align: left;
                 margin-top: 1rem;
             }
-
             .balance-title {
                 font-size: 1rem;
             }
-
             .balance-amount {
                 font-size: 2rem;
             }
+        }
 
+        /* Responsive investment history table */
+        @media (max-width: 768px) {
             .table-responsive {
                 overflow-x: auto;
             }
-
-            .table th, .table td {
-                white-space: nowrap;
-                min-width: 100px;
-            }
-
-            /* Hide columns on mobile */
             .table th:nth-child(2),
             .table td:nth-child(2),
             .table th:nth-child(4),
             .table td:nth-child(4) {
                 display: none;
             }
+            .table th, .table td {
+                padding: 0.5rem;
+                font-size: 0.9rem;
+            }
         }
 
-        /* Dropdown menu styles */
+        /* Dropdown menu styling */
         .dropdown-menu {
             background-color: var(--primary-color);
             border: none;
         }
-
         .dropdown-item {
-            color: white !important;
+            color: white;
+            padding: 0.5rem 1rem;
         }
-
         .dropdown-item:hover {
-            background-color: var(--secondary-color) !important;
+            background-color: var(--secondary-color);
+            color: white;
         }
-
         .dropdown-item.text-danger {
             color: #ff6b6b !important;
         }
-
         .dropdown-item.text-danger:hover {
-            background-color: rgba(255, 107, 107, 0.1) !important;
+            background-color: #dc3545;
+            color: white !important;
+        }
+        .dropdown-divider {
+            border-color: rgba(255, 255, 255, 0.1);
         }
 
-        /* Hamburger menu color */
-        .navbar-toggler-icon {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255, 255, 255, 0.9)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
-        }
-
+        /* Hamburger menu styling */
         .navbar-toggler {
-            border-color: rgba(255, 255, 255, 0.9);
+            border-color: white;
+        }
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255, 255, 255, 1)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
         }
     </style>
 </head>
@@ -433,13 +430,13 @@
                 </ul>
                 <div class="d-flex align-items-center">
                     <div class="dropdown me-3">
-                        <button class="btn btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button class="btn btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
                             <i class="bi bi-person-circle me-2"></i>
-                            <span id="userName" class="text-white">User</span>
+                            <span id="userName">User</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item text-dark" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
-                            <li><a class="dropdown-item text-dark" href="#"><i class="bi bi-shield-lock me-2"></i>Security</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-shield-lock me-2"></i>Security</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="#" id="logoutBtn"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                         </ul>
@@ -855,9 +852,6 @@
         })();
     </script>
     <script>
-        // API Configuration
-        const API_BASE_URL = 'https://cypherium.vercel.app'; // Update this to your actual backend URL
-
         // Check authentication
         document.addEventListener('DOMContentLoaded', function() {
             const token = localStorage.getItem('token');
@@ -868,74 +862,21 @@
                 return;
             }
 
-            // Update username in both dropdown and welcome message
+            // Update username in dropdown
             const userNameElement = document.getElementById('userName');
-            const welcomeUsernameElement = document.getElementById('welcomeUsername');
-            if (userNameElement && welcomeUsernameElement && user.username) {
+            if (userNameElement && user.username) {
                 userNameElement.textContent = user.username;
-                welcomeUsernameElement.textContent = user.username;
             }
 
             // Load user data
             loadUserData();
         });
 
-        // Check if user is authenticated
-        document.addEventListener('DOMContentLoaded', async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                window.location.href = 'login.html';
-                return;
-            }
-
-            // Fetch user data and investments
-            try {
-                const [userResponse, investmentsResponse] = await Promise.all([
-                    fetch(`${API_BASE_URL}/api/user/profile`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    }),
-                    fetch(`${API_BASE_URL}/api/investments/my-investments`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    })
-                ]);
-
-                if (!userResponse.ok || !investmentsResponse.ok) {
-                    throw new Error('Failed to fetch data');
-                }
-
-                const userData = await userResponse.json();
-                const investments = await investmentsResponse.json();
-
-                // Update dashboard with user data
-                document.getElementById('userName').textContent = userData.username;
-                document.getElementById('welcomeUsername').textContent = userData.username;
-                document.getElementById('walletBalance').textContent = `$${userData.balance.toFixed(2)}`;
-                document.getElementById('totalInvestments').textContent = `$${userData.totalInvested.toFixed(2)}`;
-                document.getElementById('totalEarnings').textContent = `$${userData.totalEarnings.toFixed(2)}`;
-
-                // Update investment history
-                updateInvestmentHistory(investments);
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                showAlert('Error loading dashboard data', 'danger');
-            }
-
-            // Add logout functionality
-            document.getElementById('logoutBtn').addEventListener('click', () => {
-                localStorage.removeItem('token');
-                window.location.href = 'login.html';
-            });
-        });
-
         // Load user data
         async function loadUserData() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
+                const response = await fetch(`${API_BASE_URL}/profile`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -947,6 +888,14 @@
 
                 const data = await response.json();
                 
+                // Update username in dropdown and welcome message
+                const userNameElement = document.getElementById('userName');
+                const welcomeUsernameElement = document.getElementById('welcomeUsername');
+                if (userNameElement && data.username) {
+                    userNameElement.textContent = data.username;
+                    welcomeUsernameElement.textContent = data.username;
+                }
+
                 // Update wallet balance
                 const walletBalanceElements = document.querySelectorAll('#walletBalance');
                 walletBalanceElements.forEach(element => {
@@ -975,27 +924,56 @@
             }
         }
 
-        // Load investment history
-        async function loadInvestmentHistory() {
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(`${API_BASE_URL}/api/investments/my-investments`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+        // Check if user is authenticated
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
 
-                if (!response.ok) {
-                    throw new Error('Failed to load investment history');
+            // Fetch user data and investments
+            try {
+                const [userResponse, investmentsResponse] = await Promise.all([
+                    fetch('/api/user', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    }),
+                    fetch('/api/investments/my-investments', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    })
+                ]);
+
+                if (!userResponse.ok || !investmentsResponse.ok) {
+                    throw new Error('Failed to fetch data');
                 }
 
-                const investments = await response.json();
+                const userData = await userResponse.json();
+                const investments = await investmentsResponse.json();
+
+                // Update dashboard with user data
+                document.getElementById('userName').textContent = userData.username;
+                document.getElementById('userFullName').textContent = userData.fullName || userData.username;
+                document.getElementById('walletBalance').textContent = `$${userData.balance.toFixed(2)}`;
+                document.getElementById('totalInvestments').textContent = `$${userData.totalInvested.toFixed(2)}`;
+                document.getElementById('totalEarnings').textContent = `$${userData.totalEarnings.toFixed(2)}`;
+
+                // Update investment history
                 updateInvestmentHistory(investments);
             } catch (error) {
-                console.error('Error loading investment history:', error);
-                showAlert('Error loading investment history', 'danger');
+                console.error('Error fetching data:', error);
+                showAlert('Error loading dashboard data', 'danger');
             }
-        }
+
+            // Add logout functionality
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.removeItem('token');
+                window.location.href = 'login.html';
+            });
+        });
 
         function updateInvestmentHistory(investments) {
             const tbody = document.getElementById('investmentHistory');
@@ -1033,14 +1011,7 @@
                 ${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
-            
-            const container = document.querySelector('main.container');
-            if (container) {
-                container.insertBefore(alertContainer, container.firstChild);
-            } else {
-                // Fallback if container is not found
-                document.body.insertBefore(alertContainer, document.body.firstChild);
-            }
+            document.querySelector('.container').insertBefore(alertContainer, document.querySelector('.row'));
         }
 
         // Initialize modals
