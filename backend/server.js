@@ -3,6 +3,11 @@ const cors = require('cors');
 const path = require('path');
 const mongoose = require('mongoose');
 require('dotenv').config();
+const { connectWithRetry } = require('./utils/db');
+const checkDatabaseConnection = require('./middleware/dbMiddleware');
+const healthRoutes = require('./routes/healthRoutes');
+const userRoutes = require('./routes/userRoutes');
+const investmentRoutes = require('./routes/investmentRoutes');
 
 // Validate required environment variables
 const requiredEnvVars = [
@@ -98,105 +103,14 @@ app.use((err, req, res, next) => {
     next();
 });
 
-// MongoDB connection
-const connectDB = async () => {
-    try {
-        // Check if already connected
-        if (mongoose.connection.readyState === 1) {
-            console.log('MongoDB already connected');
-            return true;
-        }
+// Initialize database connection
+connectWithRetry();
 
-        console.log('Attempting to connect to MongoDB...');
-        console.log('MongoDB URI:', process.env.MONGODB_URI ? 'Set' : 'Missing');
-        
-        // Optimize connection for serverless
-        const conn = await mongoose.connect(process.env.MONGODB_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 3000, // Reduced timeout
-            socketTimeoutMS: 3000, // Reduced timeout
-            maxPoolSize: 10,
-            minPoolSize: 5,
-            retryWrites: true,
-            retryReads: true,
-            connectTimeoutMS: 3000, // Reduced timeout
-            heartbeatFrequencyMS: 1000,
-            maxIdleTimeMS: 3000, // Reduced timeout
-            keepAlive: true,
-            keepAliveInitialDelay: 300000,
-            autoIndex: false,
-            family: 4 // Use IPv4, skip trying IPv6
-        });
-
-        console.log(`MongoDB Connected: ${conn.connection.host}`);
-        
-        // Log connection details
-        console.log('MongoDB Connection Details:', {
-            host: conn.connection.host,
-            port: conn.connection.port,
-            name: conn.connection.name,
-            readyState: conn.connection.readyState,
-            maxPoolSize: conn.connection.maxPoolSize,
-            minPoolSize: conn.connection.minPoolSize
-        });
-
-        return true;
-    } catch (error) {
-        console.error('MongoDB Connection Error:', {
-            message: error.message,
-            name: error.name,
-            code: error.code,
-            stack: error.stack
-        });
-        return false;
-    }
-};
-
-// Connect to MongoDB in all environments
-if (process.env.NODE_ENV !== 'test') {
-    connectDB();
-}
-
-// Add MongoDB connection check middleware
-app.use(async (req, res, next) => {
-    if (mongoose.connection.readyState !== 1) {
-        console.log('MongoDB connection state:', mongoose.connection.readyState);
-        // Try to reconnect if not connected
-        if (mongoose.connection.readyState === 0) {
-            try {
-                const connected = await connectDB();
-                if (!connected) {
-                    return res.status(503).json({ 
-                        error: 'Database error',
-                        details: 'Failed to connect to database',
-                        retry: true
-                    });
-                }
-            } catch (error) {
-                console.error('Failed to reconnect to MongoDB:', error);
-                return res.status(503).json({ 
-                    error: 'Database error',
-                    details: 'Failed to connect to database',
-                    retry: true
-                });
-            }
-        }
-    }
-    next();
-});
-
-// Import routes
-const adminRoutes = require('./routes/admin');
-const userRoutes = require('./routes/user');
-const authRoutes = require('./routes/authRoutes');
-const googleAuthRoutes = require('./routes/googleAuth');
-
-// Use routes
-app.use('/api/admin', adminRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/auth/google', googleAuthRoutes);
+// Routes
+app.use('/api/health', healthRoutes);
+app.use('/api', checkDatabaseConnection); // Apply database check to all API routes
+app.use('/api/user', userRoutes);
+app.use('/api/investments', investmentRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
