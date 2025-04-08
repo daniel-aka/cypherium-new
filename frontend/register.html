@@ -128,6 +128,11 @@
                     <label class="form-label">Secret Answer:</label>
                     <input type="text" class="form-control" id="secretAnswer" required>
                 </div>
+                <div class="form-group mb-3">
+                    <label class="form-label">Referral Code (Optional):</label>
+                    <input type="text" class="form-control" id="referralCode" placeholder="Enter referral code">
+                    <div id="referralMessage" class="form-text text-success" style="display: none;"></div>
+                </div>
                 
                 <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">CREATE ACCOUNT</button>
             </form>
@@ -158,6 +163,8 @@
             const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
             const passwordInput = document.getElementById('password');
             const confirmPasswordInput = document.getElementById('confirmPassword');
+            const referralCode = document.getElementById('referralCode');
+            const referralMessage = document.getElementById('referralMessage');
             
             // Password toggle functionality
             function setupPasswordToggle(toggleBtn, input) {
@@ -176,6 +183,20 @@
             setupPasswordToggle(togglePassword, passwordInput);
             setupPasswordToggle(toggleConfirmPassword, confirmPasswordInput);
             
+            // Handle referral code input
+            referralCode.addEventListener('input', function() {
+                const code = this.value.toLowerCase().trim();
+                referralMessage.style.display = 'none';
+                
+                if (code === '3ey4884') {
+                    referralMessage.textContent = 'Referred by Emma Watson - Advisory Member and Founder';
+                    referralMessage.style.display = 'block';
+                } else if (code === 'hgr9n3r') {
+                    referralMessage.textContent = 'Referred by Hermione Granger - Advisory Member';
+                    referralMessage.style.display = 'block';
+                }
+            });
+            
             // Form submission
             registerForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
@@ -188,6 +209,7 @@
                 const confirmPassword = document.getElementById('confirmPassword').value;
                 const secretQuestion = document.getElementById('secretQuestion').value;
                 const secretAnswer = document.getElementById('secretAnswer').value;
+                const referralCode = document.getElementById('referralCode').value;
 
                 // Validate password
                 if (password.length < 8) {
@@ -214,7 +236,8 @@
                             email,
                             password,
                             secretQuestion,
-                            secretAnswer
+                            secretAnswer,
+                            referralCode: referralCode || null
                         })
                     });
 
